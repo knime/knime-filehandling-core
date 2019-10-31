@@ -77,10 +77,12 @@ public class FileChooserSettingsConverter {
     public static void convert(final SettingsModelFileChooser2 settings) {
         final String path = settings.getPathOrURL();
 
-        if (!path.contains("://") && !path.startsWith("file:/")) {
-            setLocal(path, settings);
-        } else {
-            setCustom(path, settings);
+        if (path != null) {
+            if (!path.contains("://") && !path.startsWith("file:/")) {
+                setLocal(path, settings);
+            } else {
+                setCustom(path, settings);
+            }
         }
     }
 
