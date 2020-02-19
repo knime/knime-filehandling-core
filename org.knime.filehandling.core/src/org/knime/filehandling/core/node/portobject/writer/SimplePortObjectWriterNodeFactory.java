@@ -43,32 +43,62 @@
  *  when such Node is propagated with or for interoperation with KNIME.
  * ---------------------------------------------------------------------
  *
+ * History
+ *   Feb 19, 2020 (Mark Ortmann, KNIME GmbH, Berlin, Germany): created
  */
-package org.knime.filehandling.core.node.portobject.reader;
+package org.knime.filehandling.core.node.portobject.writer;
 
-import org.knime.filehandling.core.node.portobject.PortObjectIONodeConfig;
+import javax.swing.JFileChooser;
+
+import org.knime.core.node.context.NodeCreationConfiguration;
+import org.knime.filehandling.core.node.portobject.reader.PortObjectReaderNodeDialog;
 
 /**
- * Configuration class for port object reader nodes that can be extended with additional configurations.
+ * Abstract node factory for simple port object writer nodes.
  *
- * @author Simon Schmid, KNIME GmbH, Konstanz, Germany
+ * @author Mark Ortmann, KNIME GmbH, Berlin, Germany
  */
-public class PortObjectReaderNodeConfig extends PortObjectIONodeConfig {
+public abstract class SimplePortObjectWriterNodeFactory extends
+    PortObjectWriterNodeFactory<SimplePortObjectWriterNodeModel, PortObjectWriterNodeDialog<PortObjectWriterNodeConfig>>
+{
+
+    /** The file chooser history id. */
+    private final String m_fileChooserHistoryId;
+
+    /** the file suffixes to filter on. */
+    private final String[] m_fileSuffixes;
 
     /**
-     * Constructor for configs in which the file chooser doesn't filter on file suffixes.
-     */
-    public PortObjectReaderNodeConfig() {
-        super();
-    }
-
-    /**
-     * Constructor for configs in which the file chooser filters on a set of file suffixes.
+     * Constructor.
      *
+     * @param fileChooserHistoryId id used to store file history used by {@link PortObjectReaderNodeDialog}
      * @param fileSuffixes the file suffixes to filter on
+     *
      */
-    public PortObjectReaderNodeConfig(final String[] fileSuffixes) {
-        super(fileSuffixes);
+    protected SimplePortObjectWriterNodeFactory(final String fileChooserHistoryId, final String[] fileSuffixes) {
+        super();
+        m_fileChooserHistoryId = fileChooserHistoryId;
+        m_fileSuffixes = fileSuffixes;
     }
 
+    @Override
+    protected final PortObjectWriterNodeDialog<PortObjectWriterNodeConfig>
+        createDialog(final NodeCreationConfiguration creationConfig) {
+        return new PortObjectWriterNodeDialog<PortObjectWriterNodeConfig>(creationConfig.getPortConfig().get(),
+            getConfig(), m_fileChooserHistoryId, JFileChooser.FILES_ONLY);
+    }
+
+    @Override
+    protected final SimplePortObjectWriterNodeModel createNodeModel(final NodeCreationConfiguration creationConfig) {
+        return new SimplePortObjectWriterNodeModel(creationConfig, getConfig());
+    }
+
+    /**
+     * Returns the port object writer node configuration.
+     *
+     * @return the writer configuration
+     */
+    private PortObjectWriterNodeConfig getConfig() {
+        return new PortObjectWriterNodeConfig(m_fileSuffixes);
+    }
 }

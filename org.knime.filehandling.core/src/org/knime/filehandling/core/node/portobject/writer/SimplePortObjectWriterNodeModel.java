@@ -1,5 +1,6 @@
 /*
  * ------------------------------------------------------------------------
+ *
  *  Copyright by KNIME AG, Zurich, Switzerland
  *  Website: http://www.knime.com; Email: contact@knime.com
  *
@@ -40,73 +41,43 @@
  *  propagated with or for interoperation with KNIME.  The owner of a Node
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
- * -------------------------------------------------------------------
+ * ---------------------------------------------------------------------
  *
+ * History
+ *   Feb 19, 2020 (Mark Ortmann, KNIME GmbH, Berlin, Germany): created
  */
-package org.knime.filehandling.core.node.portobject.reader;
+package org.knime.filehandling.core.node.portobject.writer;
 
-import java.io.IOException;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
+import java.io.OutputStream;
 
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.context.NodeCreationConfiguration;
-import org.knime.core.node.context.url.URLConfiguration;
 import org.knime.core.node.port.PortObject;
-import org.knime.filehandling.core.defaultnodesettings.FileChooserHelper;
-import org.knime.filehandling.core.node.portobject.PortObjectIONodeModel;
+import org.knime.core.node.port.PortUtil;
 
 /**
- * Abstract node model for port object reader nodes that read from a {@link Path}.
+ * Port object writer utilizing
+ * {@link PortUtil#writeObjectToStream(PortObject, OutputStream, org.knime.core.node.ExecutionMonitor)}.
  *
- * @author Marc Bux, KNIME GmbH, Berlin, Germany
- * @param <C> the config used by the node
+ * @author Mark Ortmann, KNIME GmbH, Berlin, Germany
  */
-public abstract class PortObjectFromPathReaderNodeModel<C extends PortObjectReaderNodeConfig>
-    extends PortObjectIONodeModel<C> {
-
-    /** The name of the fixed port object output port group. */
-    static final String PORT_OBJECT_OUTPUT_GRP_NAME = "Port Object";
+final class SimplePortObjectWriterNodeModel extends PortObjectToFileWriterNodeModel<PortObjectWriterNodeConfig> {
 
     /**
      * Constructor.
      *
      * @param creationConfig the node creation configuration
-     * @param config the reader configuration
+     * @param config the writer configuration
      */
-    protected PortObjectFromPathReaderNodeModel(final NodeCreationConfiguration creationConfig, final C config) {
-        super(creationConfig.getPortConfig().get(), config);
-        // Check if a URL is already configured and set it if so.
-        // This is, e.g., the case when a file has been dropped into AP and the node has automatically been created.
-        final Optional<? extends URLConfiguration> urlConfig = creationConfig.getURLConfig();
-        if (urlConfig.isPresent()) {
-            getConfig().getFileChooserModel().setPathOrURL(urlConfig.get().getUrl().getPath().toString());
-        }
+    SimplePortObjectWriterNodeModel(final NodeCreationConfiguration creationConfig,
+        final PortObjectWriterNodeConfig config) {
+        super(creationConfig, config);
     }
 
     @Override
-    protected final PortObject[] execute(final PortObject[] data, final ExecutionContext exec) throws Exception {
-        final FileChooserHelper fch = createFileChooserHelper(data);
-        final List<Path> paths = fch.getPaths();
-        assert paths.size() == 1;
-        final Path path = paths.get(0);
-        try {
-            return readFromPath(path, exec);
-        } catch (NoSuchFileException e) {
-            throw new IOException("The file '" + path + "' does not exist.");
-        }
+    protected void write(final PortObject object, final OutputStream outputStream, final ExecutionContext exec)
+        throws Exception {
+        PortUtil.writeObjectToStream(object, outputStream, exec);
     }
-
-    /**
-     * Reads the object from a path.
-     *
-     * @param inputPath the input path of the object
-     * @param exec the execution context
-     * @return the read in port object(s)
-     * @throws Exception if any exception occurs
-     */
-    protected abstract PortObject[] readFromPath(final Path inputPath, final ExecutionContext exec) throws Exception;
 
 }

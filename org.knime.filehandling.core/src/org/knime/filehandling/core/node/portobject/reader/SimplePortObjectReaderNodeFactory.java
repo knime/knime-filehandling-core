@@ -1,5 +1,6 @@
 /*
  * ------------------------------------------------------------------------
+ *
  *  Copyright by KNIME AG, Zurich, Switzerland
  *  Website: http://www.knime.com; Email: contact@knime.com
  *
@@ -40,73 +41,64 @@
  *  propagated with or for interoperation with KNIME.  The owner of a Node
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
- * -------------------------------------------------------------------
+ * ---------------------------------------------------------------------
  *
+ * History
+ *   Feb 19, 2020 (Mark Ortmann, KNIME GmbH, Berlin, Germany): created
  */
 package org.knime.filehandling.core.node.portobject.reader;
 
-import java.io.IOException;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
+import javax.swing.JFileChooser;
 
-import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.context.NodeCreationConfiguration;
-import org.knime.core.node.context.url.URLConfiguration;
-import org.knime.core.node.port.PortObject;
-import org.knime.filehandling.core.defaultnodesettings.FileChooserHelper;
-import org.knime.filehandling.core.node.portobject.PortObjectIONodeModel;
 
 /**
- * Abstract node model for port object reader nodes that read from a {@link Path}.
+ * Abstract node factory for simple port object reader nodes.
  *
- * @author Marc Bux, KNIME GmbH, Berlin, Germany
- * @param <C> the config used by the node
+ * @author Mark Ortmann, KNIME GmbH, Berlin, Germany
  */
-public abstract class PortObjectFromPathReaderNodeModel<C extends PortObjectReaderNodeConfig>
-    extends PortObjectIONodeModel<C> {
+public abstract class SimplePortObjectReaderNodeFactory extends
+    PortObjectReaderNodeFactory<SimplePortObjectReaderNodeModel, PortObjectReaderNodeDialog<PortObjectReaderNodeConfig>>
+{
 
-    /** The name of the fixed port object output port group. */
-    static final String PORT_OBJECT_OUTPUT_GRP_NAME = "Port Object";
+    /** The file chooser history id. */
+    private final String m_fileChooserHistoryId;
+
+    /** the file suffixes to filter on. */
+    private final String[] m_fileSuffixes;
 
     /**
      * Constructor.
      *
-     * @param creationConfig the node creation configuration
-     * @param config the reader configuration
+     * @param fileChooserHistoryId id used to store file history used by {@link PortObjectReaderNodeDialog}
+     * @param fileSuffixes the file suffixes to filter on
+     *
      */
-    protected PortObjectFromPathReaderNodeModel(final NodeCreationConfiguration creationConfig, final C config) {
-        super(creationConfig.getPortConfig().get(), config);
-        // Check if a URL is already configured and set it if so.
-        // This is, e.g., the case when a file has been dropped into AP and the node has automatically been created.
-        final Optional<? extends URLConfiguration> urlConfig = creationConfig.getURLConfig();
-        if (urlConfig.isPresent()) {
-            getConfig().getFileChooserModel().setPathOrURL(urlConfig.get().getUrl().getPath().toString());
-        }
+    protected SimplePortObjectReaderNodeFactory(final String fileChooserHistoryId, final String[] fileSuffixes) {
+        super();
+        m_fileChooserHistoryId = fileChooserHistoryId;
+        m_fileSuffixes = fileSuffixes;
     }
 
     @Override
-    protected final PortObject[] execute(final PortObject[] data, final ExecutionContext exec) throws Exception {
-        final FileChooserHelper fch = createFileChooserHelper(data);
-        final List<Path> paths = fch.getPaths();
-        assert paths.size() == 1;
-        final Path path = paths.get(0);
-        try {
-            return readFromPath(path, exec);
-        } catch (NoSuchFileException e) {
-            throw new IOException("The file '" + path + "' does not exist.");
-        }
+    protected final PortObjectReaderNodeDialog<PortObjectReaderNodeConfig>
+        createDialog(final NodeCreationConfiguration creationConfig) {
+        return new PortObjectReaderNodeDialog<PortObjectReaderNodeConfig>(creationConfig.getPortConfig().get(),
+            getConfig(), m_fileChooserHistoryId, JFileChooser.FILES_ONLY);
+    }
+
+    @Override
+    protected final SimplePortObjectReaderNodeModel createNodeModel(final NodeCreationConfiguration creationConfig) {
+        return new SimplePortObjectReaderNodeModel(creationConfig, getConfig());
     }
 
     /**
-     * Reads the object from a path.
+     * Returns the port object reader node configuration.
      *
-     * @param inputPath the input path of the object
-     * @param exec the execution context
-     * @return the read in port object(s)
-     * @throws Exception if any exception occurs
+     * @return the reader configuration
      */
-    protected abstract PortObject[] readFromPath(final Path inputPath, final ExecutionContext exec) throws Exception;
+    private PortObjectReaderNodeConfig getConfig() {
+        return new PortObjectReaderNodeConfig(m_fileSuffixes);
+    }
 
 }
