@@ -48,6 +48,7 @@
  */
 package org.knime.filehandling.core.testing;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 import org.knime.filehandling.core.connections.FSConnection;
@@ -70,14 +71,14 @@ public interface FSTestInitializer {
     /**
      * Hook called before each test case, allowing each implementation to modify the initializer before each test case.
      */
-    default public void beforeTestCase() {
+    default public void beforeTestCase() throws IOException {
         // default: do nothing
     }
 
     /**
      * Hook called after each test case, allowing each implementation to modify the initializer after each test case.
      */
-    default public void afterTestCase() {
+    default public void afterTestCase() throws IOException {
         // default: do nothing
     }
 
