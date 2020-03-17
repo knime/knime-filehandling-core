@@ -42,28 +42,64 @@
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
  * ---------------------------------------------------------------------
- *
- * History
- *   Sep 16, 2019 (Tobias Urhaug, KNIME GmbH, Berlin, Germany): created
  */
-package org.knime.filehandling.core.connections.knime;
+package org.knime.filehandling.core.connections.knimerelativeto;
 
-import org.knime.filehandling.core.filechooser.NioFileSystemView;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.DirectoryStream.Filter;
+import java.nio.file.Files;
+import java.nio.file.NotDirectoryException;
+import java.nio.file.Path;
+import java.util.Iterator;
 
 /**
- * This class is needed to handle the creation of file objects resolved against the file systems base location.
+ * Iterates over all the files and folders of the path on a local KNIME relative to File System.
  *
- * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
+ * @author Sascha Wolke, KNIME GmbH
  */
-public class KNIMEFileSystemView extends NioFileSystemView {
+public class LocalRelativeToPathIterator implements Iterator<Path> {
+
+    private Iterator<LocalRelativeToPath> m_iterator;
 
     /**
-     * Constructs a new KNIME File System View.
+     * Creates an iterator over all the files and folder in the given paths location.
      *
-     * @param fileSystem the file system to wrap the view around
+     * @param knimePath destination to iterate over
+     * @param filter
+     * @throws IOException on I/O errors
      */
-    public KNIMEFileSystemView(final KNIMEFileSystem fileSystem) {
-        super(fileSystem, fileSystem.getBasePath());
+    public LocalRelativeToPathIterator(final LocalRelativeToPath knimePath, final Filter<? super Path> filter) throws IOException {
+
+        if (!Files.isDirectory(knimePath)) {
+            throw new NotDirectoryException(knimePath.toString());
+        }
+
+        try {
+            m_iterator = Files.list(knimePath.toAbsoluteLocalPath())
+                .map(p -> (LocalRelativeToPath)knimePath.resolve(p.getFileName().toString())).filter(p -> {
+                    try {
+                        return filter.accept(p);
+                    } catch (final IOException ex) { // wrap exception
+                        throw new UncheckedIOException(ex);
+                    }
+                }).iterator();
+        } catch (final UncheckedIOException ex) { // unwrap exception
+            if (ex.getCause() != null) {
+                throw ex.getCause();
+            } else {
+                throw ex;
+            }
+        }
     }
 
+    @Override
+    public boolean hasNext() {
+        return m_iterator.hasNext();
+    }
+
+    @Override
+    public Path next() {
+        return m_iterator.next();
+    }
 }

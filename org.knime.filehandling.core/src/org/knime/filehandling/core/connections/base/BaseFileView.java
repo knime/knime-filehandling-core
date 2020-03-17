@@ -46,9 +46,11 @@
  * History
  *   18.11.2019 (Mareike Hoeger, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.filehandling.core.connections.knimeremote;
+package org.knime.filehandling.core.connections.base;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 
 import javax.swing.Icon;
@@ -56,6 +58,8 @@ import javax.swing.ImageIcon;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.knime.core.node.NodeLogger;
+import org.knime.filehandling.core.connections.knimerelativeto.LocalRelativeToPath;
+import org.knime.filehandling.core.connections.knimeremote.KNIMERemotePath;
 import org.knime.filehandling.core.filechooser.NioFileView;
 import org.osgi.framework.FrameworkUtil;
 
@@ -63,27 +67,53 @@ import org.osgi.framework.FrameworkUtil;
  * FileView that shows a KNIME icon for workflows
  *
  * @author Mareike Hoeger, KNIME GmbH, Konstanz, Germany
+ * @author Sascha Wolke, KNIME GmbH, Konstanz, Germany
  */
-public class KNIMERemoteFileView extends NioFileView {
-    private static final NodeLogger LOGGER = NodeLogger.getLogger(KNIMERemoteFileView.class);
+public class BaseFileView extends NioFileView {
+    private static final NodeLogger LOGGER = NodeLogger.getLogger(BaseFileView.class);
+
+    private Icon m_workflowIcon = null;
 
     @Override
     public Icon getIcon(final File f) {
-        final Path path = f.toPath();
-        if (path instanceof KNIMERemotePath) {
-            final KNIMERemotePath knimeRemotePath = (KNIMERemotePath)path;
-            if (knimeRemotePath.isWorkflow()) {
-                try {
-                    final File bundle = FileLocator.getBundleFile(FrameworkUtil.getBundle(getClass()));
-                    final File workflowImage = new File(bundle, "icons/knime_default.png");
-                    return new ImageIcon(workflowImage.getPath());
-                } catch (final Exception e) {
-                    LOGGER.debug(e);
+        try {
+            final Icon workflowIcon = getWorkflowIcon();
+            final Path path = f.toPath();
+
+            if (workflowIcon != null && path instanceof LocalRelativeToPath) {
+                final LocalRelativeToPath relativePath = (LocalRelativeToPath)path;
+                if (relativePath.getFileSystem().isWorkflow(relativePath)) {
+                    return workflowIcon;
+                }
+
+            } else if (workflowIcon != null && path instanceof KNIMERemotePath) {
+                final KNIMERemotePath knimeRemotePath = (KNIMERemotePath)path;
+                if (knimeRemotePath.isWorkflow()) {
+                    return workflowIcon;
                 }
             }
+
+        } catch (final IOException e) {
+            // something went wrong, use default icon
+            LOGGER.debug(e);
+            throw new UncheckedIOException(e);
         }
 
         return super.getIcon(f);
     }
 
+    /**
+     * Try to load the workflow icon from the bundle.
+     *
+     * @return Workflow icon or {@code null}
+     */
+    private synchronized Icon getWorkflowIcon() throws IOException {
+        if (m_workflowIcon == null) {
+            final File bundle = FileLocator.getBundleFile(FrameworkUtil.getBundle(BaseFileView.class));
+            final File workflowImage = new File(bundle, "icons/knime_default.png");
+            m_workflowIcon = new ImageIcon(workflowImage.getPath());
+        }
+
+        return m_workflowIcon;
+    }
 }

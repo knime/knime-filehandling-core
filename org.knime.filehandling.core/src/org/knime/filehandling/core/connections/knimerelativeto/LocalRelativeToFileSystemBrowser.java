@@ -44,45 +44,48 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Sep 16, 2019 (Tobias Urhaug, KNIME GmbH, Berlin, Germany): created
+ *   Feb 11, 2020 (Sascha Wolke, KNIME GmbH): created
  */
-package org.knime.filehandling.core.connections.knime;
+package org.knime.filehandling.core.connections.knimerelativeto;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import javax.swing.filechooser.FileView;
 
+import org.knime.filehandling.core.connections.base.BaseFileView;
 import org.knime.filehandling.core.defaultnodesettings.FilesHistoryPanel;
 import org.knime.filehandling.core.filechooser.NioFileSystemBrowser;
-import org.knime.filehandling.core.filechooser.NioFileSystemView;
 
 /**
- * A KNIME File System Browser allowing the {@link FilesHistoryPanel} to browse a KNIME File System.
+ * A KNIME File System Browser allowing the {@link FilesHistoryPanel} to browse a local KNIME relative to File System.
  *
- * @author Tobias Urhaug, KNIME GmbH, Berlin, Germany
+ * @author Sascha Wolke, KNIME GmbH
  */
-public class KNIMEFileSystemBrowser extends NioFileSystemBrowser {
-
-    private final Path m_baseLocation;
+public class LocalRelativeToFileSystemBrowser extends NioFileSystemBrowser {
+    private final LocalRelativeToFileSystem m_fileSystem;
 
     /**
-     * Creates a new KNIME File System Browser with a view and base location.
+     * Creates a new local KNIME relative to File System Browser with a view and base location.
      *
-     * @param fileSystemView the view of the file system
-     * @param baseLocation the base location, i.e. workflow location or mount point location
+     * @param fileSystem the file system to use
      */
-    public KNIMEFileSystemBrowser(final NioFileSystemView fileSystemView, final Path baseLocation) {
-        super(fileSystemView);
-        m_baseLocation = baseLocation;
+    public LocalRelativeToFileSystemBrowser(final LocalRelativeToFileSystem fileSystem) {
+        super(new LocalRelativeToFileSystemView(fileSystem));
+        m_fileSystem = fileSystem;
+    }
+
+    @Override
+    protected FileView getFileView() {
+        return new BaseFileView();
     }
 
     /**
-     * {@inheritDoc}
+     * Convert the selected file to a relative path in workflow relative mode.
      */
     @Override
     protected String postprocessSelectedFilePath(final String selectedFile) {
-        Path path = Paths.get(selectedFile);
-        Path relativized = m_baseLocation.relativize(path);
-        return relativized.toString();
+        if (m_fileSystem.isWorkflowRelativeFileSystem()) {
+            return m_fileSystem.getWorkingDirectory().relativize(m_fileSystem.getPath(selectedFile)).toString();
+        } else {
+            return selectedFile;
+        }
     }
-
 }
