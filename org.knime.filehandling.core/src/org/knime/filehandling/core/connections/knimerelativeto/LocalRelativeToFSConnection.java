@@ -42,64 +42,44 @@
  *  may freely choose the license terms applicable to such Node, including
  *  when such Node is propagated with or for interoperation with KNIME.
  * ---------------------------------------------------------------------
+ *
+ * History
+ *   Apr 6, 2020 (bjoern): created
  */
 package org.knime.filehandling.core.connections.knimerelativeto;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.DirectoryStream.Filter;
-import java.nio.file.Files;
-import java.nio.file.NotDirectoryException;
-import java.nio.file.Path;
-import java.util.Iterator;
+import java.net.URI;
 
-/**
- * Iterates over all the files and folders of the path on a local KNIME relative to File System.
- *
- * @author Sascha Wolke, KNIME GmbH
- */
-public class LocalRelativeToPathIterator implements Iterator<LocalRelativeToPath> {
+import org.knime.core.node.util.FileSystemBrowser;
+import org.knime.filehandling.core.connections.FSConnection;
+import org.knime.filehandling.core.connections.FSFileSystem;
+import org.knime.filehandling.core.defaultnodesettings.KNIMEConnection.Type;
 
-    private Iterator<LocalRelativeToPath> m_iterator;
+public class LocalRelativeToFSConnection implements FSConnection {
 
-    /**
-     * Creates an iterator over all the files and folder in the given paths location.
-     *
-     * @param knimePath destination to iterate over
-     * @param filter
-     * @throws IOException on I/O errors
-     */
-    public LocalRelativeToPathIterator(final LocalRelativeToPath knimePath, final Filter<? super Path> filter) throws IOException {
+    private final LocalRelativeToFileSystem m_fileSystem;
 
-        if (!Files.isDirectory(knimePath)) {
-            throw new NotDirectoryException(knimePath.toString());
-        }
+    private final LocalRelativeToFileSystemBrowser m_browser;
 
+    public LocalRelativeToFSConnection(final Type connectionTypeForHost) {
+        final URI fsKey = URI.create(connectionTypeForHost.getSchemeAndHost());
         try {
-            m_iterator = Files.list(knimePath.toAbsoluteLocalPath())
-                .map(p -> (LocalRelativeToPath)knimePath.resolve(p.getFileName().toString())).filter(p -> {
-                    try {
-                        return filter.accept(p);
-                    } catch (final IOException ex) { // wrap exception
-                        throw new UncheckedIOException(ex);
-                    }
-                }).iterator();
-        } catch (final UncheckedIOException ex) { // unwrap exception
-            if (ex.getCause() != null) {
-                throw ex.getCause();
-            } else {
-                throw ex;
-            }
+            m_fileSystem = LocalRelativeToFileSystemProvider.getOrCreateFileSystem(fsKey);
+            m_browser = new LocalRelativeToFileSystemBrowser(m_fileSystem);
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
         }
     }
 
     @Override
-    public boolean hasNext() {
-        return m_iterator.hasNext();
+    public FSFileSystem<?> getFileSystem() {
+        return m_fileSystem;
     }
 
     @Override
-    public LocalRelativeToPath next() {
-        return m_iterator.next();
+    public FileSystemBrowser getFileSystemBrowser() {
+        return m_browser;
     }
 }
