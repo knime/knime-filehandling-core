@@ -86,8 +86,7 @@ class DefaultReaderColumnSpec implements ReaderColumnSpec {
         if (obj == this) {
             return true;
         }
-        if (obj instanceof DefaultReaderColumnSpec) {
-            // if the T doesn't match, m_type.equals(other.m_type) will return false anyway
+        if (getClass() == obj.getClass()) {
             final DefaultReaderColumnSpec other = (DefaultReaderColumnSpec)obj;
             return Objects.equals(m_name, other.m_name);
         } else {
