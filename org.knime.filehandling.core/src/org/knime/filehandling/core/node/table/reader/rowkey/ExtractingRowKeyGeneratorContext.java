@@ -48,10 +48,11 @@
  */
 package org.knime.filehandling.core.node.table.reader.rowkey;
 
+import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import org.knime.core.data.RowKey;
-import org.knime.core.node.util.CheckUtils;
 import org.knime.filehandling.core.node.table.reader.randomaccess.RandomAccessible;
 
 /**
@@ -59,11 +60,16 @@ import org.knime.filehandling.core.node.table.reader.randomaccess.RandomAccessib
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  */
-final class ExtractingRowKeyGenerator<V> extends AbstractRowKeyGenerator<V> {
+final class ExtractingRowKeyGeneratorContext<V> extends AbstractRowKeyGenerator<V>
+    implements RowKeyGeneratorContext<V> {
+
+    private static final String MISSING_ROW_KEY_PREFIX = "?";
 
     private final Function<V, String> m_rowKeyExtractor;
 
     private final int m_colIdx;
+
+    private final AtomicLong m_rowIndex = new AtomicLong(-1);
 
     /**
      * Constructor.
@@ -72,7 +78,7 @@ final class ExtractingRowKeyGenerator<V> extends AbstractRowKeyGenerator<V> {
      * @param rowKeyExtractor converts a V into a String
      * @param colIdx index of the column containing the row keys
      */
-    ExtractingRowKeyGenerator(final String prefix, final Function<V, String> rowKeyExtractor, final int colIdx) {
+    ExtractingRowKeyGeneratorContext(final String prefix, final Function<V, String> rowKeyExtractor, final int colIdx) {
         super(prefix);
         m_rowKeyExtractor = rowKeyExtractor;
         m_colIdx = colIdx;
@@ -80,10 +86,14 @@ final class ExtractingRowKeyGenerator<V> extends AbstractRowKeyGenerator<V> {
 
     @Override
     public RowKey createKey(final RandomAccessible<V> tokens) {
-        CheckUtils.checkArgument(tokens.size() > m_colIdx, "Not all rows contain the row key column.");
-        final V key = tokens.get(m_colIdx);
-        CheckUtils.checkArgumentNotNull(key, "Missing row keys are not supported.");
-        return new RowKey(getPrefix() + m_rowKeyExtractor.apply(key));
+        final long idx = m_rowIndex.incrementAndGet();
+        final V key = tokens.size() < m_colIdx ? null : tokens.get(m_colIdx);
+        final String rowKey = key != null ? m_rowKeyExtractor.apply(key) : MISSING_ROW_KEY_PREFIX + idx;
+        return new RowKey(getPrefix() + rowKey);
     }
 
+    @Override
+    public RowKeyGenerator<V> createKeyGenerator(final Path path) {
+        return this;
+    }
 }
