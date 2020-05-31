@@ -44,25 +44,19 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   02.01.2020 (Mareike Hoeger, KNIME GmbH, Konstanz, Germany): created
+ *   May 31, 2020 (bjoern): created
  */
 package org.knime.filehandling.core.util;
 
+import java.io.IOException;
+
 /**
+ * Supplier interface where the apply function is allowed to throw an {@link IOException}.
  *
- * @author Mareike Hoeger, KNIME GmbH, Konstanz, Germany
+ * @author Björn Lohrmann, KNIME Gmbh
  * @param <R> The return type of the function
- * @param <E> The exception thrown by the function
  */
 @FunctionalInterface
-public interface CheckedExceptionSupplier <R, E extends Exception> {
-
-    /**
-     * Applies the function and returns an object of type <R>.
-     * Might throw an exception <E>
-     * @return object of type <R>
-     * @throws E <E>
-     */
-    R get() throws E;
+public interface IOESupplier<R> extends CheckedExceptionSupplier<R, IOException> {
 
 }
