@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<fragment>
+   <extension
+         point="org.knime.testing.TestcaseCollector">
+      <TestcaseCollector
+            TestcaseCollector="org.knime.filehandling.core.BaseTestcaseCollector">
+      </TestcaseCollector>
+   </extension>
+   <extension
+         point="org.knime.filehandling.FSTestInitializerProvider">
+      <FSTestInitializerProvider
+            ProviderClass="org.knime.filehandling.core.testing.local.LocalFSTestInitializerProvider">
+      </FSTestInitializerProvider>
+   </extension>
+   <extension
+         point="org.knime.filehandling.FSTestInitializerProvider">
+      <FSTestInitializerProvider
+            ProviderClass="org.knime.filehandling.core.connections.knimerelativeto.LocalRelativeToMountpointFSTestInitializerProvider">
+      </FSTestInitializerProvider>
+   </extension>
+   <extension
+         point="org.knime.filehandling.FSTestInitializerProvider">
+      <FSTestInitializerProvider
+            ProviderClass="org.knime.filehandling.core.connections.knimerelativeto.LocalRelativeToWorkflowFSTestInitializerProvider">
+      </FSTestInitializerProvider>
+   </extension>
+   <extension
+         point="org.knime.filehandling.FSTestInitializerProvider">
+      <FSTestInitializerProvider
+            ProviderClass="org.knime.filehandling.core.connections.knimerelativeto.RelativeToWorkflowDataFSTestInitializerProvider">
+      </FSTestInitializerProvider>
+   </extension>
+
+   <extension
+         point="org.knime.workbench.repository.nodes">
+      <node
+            deprecated="false"
+            category-path="/testing"
+            factory-class="org.knime.filehandling.core.testing.node.TestFileSystemConnectorNodeFactory">
+      </node>
+      <node
+            category-path="/testing"
+            deprecated="false"
+            factory-class="org.knime.filehandling.core.defaultnodesettings.fileselection.FileSelectionDialogTestNodeFactory"
+            hidden="false">
+      </node>
+      <node
+            category-path="/testing"
+            deprecated="false"
+            factory-class="org.knime.filehandling.core.defaultnodesettings.filesystemchooser.FileSystemChooserTestNodeFactory"
+            hidden="false">
+      </node>
+   </extension>
+</fragment>
