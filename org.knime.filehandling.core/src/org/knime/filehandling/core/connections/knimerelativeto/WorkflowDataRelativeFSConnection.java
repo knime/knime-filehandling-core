@@ -44,66 +44,79 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Apr 27, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Jun 24, 2020 (bjoern): created
  */
-package org.knime.filehandling.core.defaultnodesettings.filesystemchooser;
+package org.knime.filehandling.core.connections.knimerelativeto;
 
-import java.util.Arrays;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import org.knime.core.node.util.FileSystemBrowser;
+import org.knime.core.node.workflow.WorkflowContext;
+import org.knime.filehandling.core.connections.FSConnection;
+import org.knime.filehandling.core.connections.FSLocationSpec;
+import org.knime.filehandling.core.defaultnodesettings.KNIMEConnection.Type;
 
 /**
- * Lists the available options for the relative to file system.
  *
- * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
+ * @author Bjoern Lohrmann, KNIME GmbH
  */
-public enum RelativeTo {
+public class WorkflowDataRelativeFSConnection implements FSConnection {
 
-        /**
-         * Relative to mountpoint.
-         */
-        MOUNTPOINT("knime.mountpoint", "Current mountpoint"),
-        /**
-         * Relative to workflow.
-         */
-        WORKFLOW("knime.workflow", "Current workflow"),
-        /**
-         * Relative to workflow data area..
-         */
-        WORKFLOW_DATA("knime.workflow.data", "Current workflow data area");
+    private final LocalRelativeToFileSystem m_fileSystem;
 
-    private final String m_settingsValue;
-
-    private final String m_label;
-
-    private RelativeTo(final String settingsValue, final String label) {
-        m_settingsValue = settingsValue;
-        m_label = label;
-    }
-
-    @Override
-    public String toString() {
-        return m_settingsValue;
-    }
+    private final RelativeToFileSystemBrowser m_browser;
 
     /**
-     * Retrieves the {@link RelativeTo} corresponding to the provided string (as obtained from {@link RelativeTo#toString()}).
-     *
-     * @param string representation of the {@link RelativeTo} constant (as obtained from {@link RelativeTo#toString()}).
-     * @return the {@link RelativeTo} constant corresponding to <b>string</b>
-     */
-    public static RelativeTo fromString(final String string) {
-        return Arrays.stream(RelativeTo.values())//
-            .filter(r -> r.m_settingsValue.equals(string))//
-            .findFirst()//
-            .orElseThrow(() -> new IllegalArgumentException(
-                String.format("Unknown relative to option '%s' encountered.", string)));
-    }
+    * Constructor.
+    *
+    */
+   public WorkflowDataRelativeFSConnection(final boolean isConnected) {
 
-    /**
-     * Provides a user-friendly label for display purposes.
-     *
-     * @return a user-friendly label for display purposes.
-     */
-    public String getLabel() {
-        return m_label;
-    }
+       final WorkflowContext workflowContext = RelativeToUtil.getWorkflowContext();
+       final Path workflowLocation = workflowContext.getCurrentLocation().toPath().toAbsolutePath().normalize();
+
+       try {
+           m_fileSystem = createWorkflowDataRelativeFs(workflowLocation, isConnected);
+       } catch (IOException ex) {
+           // should never happen
+           throw new UncheckedIOException(ex);
+       }
+
+       m_browser = new RelativeToFileSystemBrowser(m_fileSystem);
+   }
+
+   private LocalRelativeToFileSystem createWorkflowDataRelativeFs(final Path workflowLocation,
+       final boolean isConnected) throws IOException {
+
+       final Path workflowDataDir = workflowLocation.resolve("data");
+       Files.createDirectories(workflowDataDir);
+
+       final FSLocationSpec fsLocationSpec;
+       if (isConnected) {
+           fsLocationSpec = BaseRelativeToFileSystem.CONNECTED_WORKFLOW_DATA_RELATIVE_FS_LOCATION_SPEC;
+       } else {
+           fsLocationSpec = BaseRelativeToFileSystem.CONVENIENCE_WORKFLOW_DATA_RELATIVE_FS_LOCATION_SPEC;
+       }
+
+       final URI uri = URI.create(Type.WORKFLOW_DATA_RELATIVE.getSchemeAndHost());
+       return new LocalRelativeToFileSystem(uri, //
+           workflowDataDir, //
+           Type.WORKFLOW_DATA_RELATIVE, //
+           BaseRelativeToFileSystem.PATH_SEPARATOR, //
+           fsLocationSpec);
+   }
+
+   @Override
+   public LocalRelativeToFileSystem getFileSystem() {
+       return m_fileSystem;
+   }
+
+   @Override
+   public FileSystemBrowser getFileSystemBrowser() {
+       return m_browser;
+   }
 }
