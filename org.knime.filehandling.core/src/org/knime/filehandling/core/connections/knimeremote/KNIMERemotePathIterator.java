@@ -77,11 +77,11 @@ public class KNIMERemotePathIterator implements Iterator<KNIMERemotePath> {
      * @throws IOException
      * @throws UncheckedIOException on I/O errors
      */
-    public KNIMERemotePathIterator(final Path path, final Filter<? super Path> filter) throws IOException {
-        final KNIMERemotePath knimePath = (KNIMERemotePath)path;
-        m_fileSystem = (KNIMERemoteFileSystem)knimePath.getFileSystem();
+    public KNIMERemotePathIterator(final KNIMERemotePath path, final Filter<? super Path> filter) throws IOException {
+        final KNIMERemotePath knimePath = path;
+        m_fileSystem = knimePath.getFileSystem();
 
-        final List<URI> uriList = MountPointFileSystemAccessService.instance().listFiles(path.toUri());
+        final List<URI> uriList = MountPointFileSystemAccessService.instance().listFiles(path.toKNIMEProtocolURI());
         m_iterator = uriList.stream()
             .map(p -> new KNIMERemotePath(m_fileSystem, p))
             .filter(p -> {
