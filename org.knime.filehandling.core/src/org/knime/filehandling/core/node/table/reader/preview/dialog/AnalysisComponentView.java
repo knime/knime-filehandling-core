@@ -44,55 +44,74 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Mar 27, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Aug 5, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.filehandling.core.node.table.reader.type.mapping;
+package org.knime.filehandling.core.node.table.reader.preview.dialog;
 
-import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig;
-import org.knime.filehandling.core.node.table.reader.config.TableSpecConfig;
-import org.knime.filehandling.core.node.table.reader.selector.TransformationModel;
-import org.knime.filehandling.core.node.table.reader.spec.TypedReaderTableSpec;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+
+import org.knime.filehandling.core.util.GBCBuilder;
 
 /**
- * Creates {@link TypeMapping TypeMappings} from {@link TypedReaderTableSpec ReaderTableSpecs} or based on a
- * {@link TableSpecConfig}.
+ * View of the analysis components of a table reader preview.</br>
+ * Also contains an error label.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig}
- * @param <T> the type used to represent external data types
- * @param <V> the type of values
- * @noreference non-public API
- * @noimplement non-public API
  */
-public interface TypeMappingFactory<C extends ReaderSpecificConfig<C>, T, V> {
+final class AnalysisComponentView extends JPanel {
 
-    /**
-     * Creates a {@link TypeMapping} for the provided {@link TypedReaderTableSpec}.
-     *
-     * @param spec the {@link TypedReaderTableSpec} to create a TypeMapping for
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return a {@link TypeMapping} for {@link TypedReaderTableSpec spec}
-     */
-    TypeMapping<V> create(TypedReaderTableSpec<T> spec, C readerSpecificConfig);
+    private static final long serialVersionUID = 1L;
 
-    /**
-     * Creates a {@link TypeMapping} for the provided parameters.
-     *
-     * @param spec the {@link TypedReaderTableSpec} of the output table
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @param transformation the {@link TransformationModel} that provides the type mapping information
-     * @return a {@link TypeMapping} corresponding to the provided parameters
-     */
-    TypeMapping<V> create(final TypedReaderTableSpec<T> spec, final C readerSpecificConfig,
-        final TransformationModel<T> transformation);
+    private final JButton m_quickScanButton = new JButton("Stop file scanning");
 
-    /**
-     * Creates a {@link TypeMapping} for the provided {@link TableSpecConfig}.
-     *
-     * @param config the {@link TableSpecConfig} holding the type mapping
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return the {@link TypeMapping} based on the {@link TableSpecConfig table spec config information}
-     */
-    TypeMapping<V> create(TableSpecConfig config, C readerSpecificConfig);
+    private final JLabel m_analysisProgressLabel = new JLabel();
+
+    private final JLabel m_analysisProgressPathLabel = new JLabel();
+
+    private final JLabel m_errorLabel = new JLabel();
+
+    private final JProgressBar m_analysisProgressBar;
+
+    private final transient AnalysisComponentModel m_model;
+
+    AnalysisComponentView(final AnalysisComponentModel model) {
+        m_model = model;
+        m_quickScanButton.setModel(m_model.getQuickScanModel());
+        m_analysisProgressBar = new JProgressBar(m_model.getProgress());
+        update();
+        m_model.addChangeListener(e -> update());
+        layoutPanel();
+    }
+
+    private void update() {
+        m_analysisProgressBar.setIndeterminate(m_model.isProgressIndeterminate());
+        m_analysisProgressLabel.setIcon(m_model.getAnalysisProgressIcon());
+        m_analysisProgressLabel.setText(m_model.getAnalysisProgressText());
+        m_analysisProgressPathLabel.setText(m_model.getCurrentPath());
+        m_errorLabel.setIcon(m_model.getErrorIcon());
+        m_errorLabel.setText(m_model.getErrorText());
+        updateVisible(m_model.areAnalysisComponentsVisible());
+    }
+
+    private void updateVisible(final boolean visible) {
+        m_analysisProgressBar.setVisible(visible);
+        m_quickScanButton.setVisible(visible);
+    }
+
+    private void layoutPanel() {
+        setLayout(new GridBagLayout());
+        final GBCBuilder gbc = new GBCBuilder(new Insets(5, 5, 1, 1)).anchorFirstLineStart().ipadX(50).resetX().resetY();
+        add(m_analysisProgressBar, gbc.build());
+        add(m_quickScanButton, gbc.incX().ipadX(0).insets(0, 5, 1, 5).build());
+        add(m_analysisProgressLabel, gbc.incX().setWeightX(1).insets(5,  5, 1, 1).build());
+        add(m_errorLabel, gbc.resetX().incY().setWidth(4).insets(5, 5, 5, 5).build());
+        add(m_analysisProgressPathLabel, gbc.build());
+    }
 
 }

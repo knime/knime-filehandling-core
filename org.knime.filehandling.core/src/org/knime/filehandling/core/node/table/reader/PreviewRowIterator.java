@@ -44,55 +44,19 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Mar 27, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Aug 13, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.filehandling.core.node.table.reader.type.mapping;
+package org.knime.filehandling.core.node.table.reader;
 
-import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig;
-import org.knime.filehandling.core.node.table.reader.config.TableSpecConfig;
-import org.knime.filehandling.core.node.table.reader.selector.TransformationModel;
-import org.knime.filehandling.core.node.table.reader.spec.TypedReaderTableSpec;
+import org.knime.core.data.container.CloseableRowIterator;
 
 /**
- * Creates {@link TypeMapping TypeMappings} from {@link TypedReaderTableSpec ReaderTableSpecs} or based on a
- * {@link TableSpecConfig}.
+ * Marker for {@link CloseableRowIterator CloseableRowIterators} that might throw {@link PreviewIteratorException}.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig}
- * @param <T> the type used to represent external data types
- * @param <V> the type of values
- * @noreference non-public API
- * @noimplement non-public API
  */
-public interface TypeMappingFactory<C extends ReaderSpecificConfig<C>, T, V> {
+public abstract class PreviewRowIterator extends CloseableRowIterator {
 
-    /**
-     * Creates a {@link TypeMapping} for the provided {@link TypedReaderTableSpec}.
-     *
-     * @param spec the {@link TypedReaderTableSpec} to create a TypeMapping for
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return a {@link TypeMapping} for {@link TypedReaderTableSpec spec}
-     */
-    TypeMapping<V> create(TypedReaderTableSpec<T> spec, C readerSpecificConfig);
-
-    /**
-     * Creates a {@link TypeMapping} for the provided parameters.
-     *
-     * @param spec the {@link TypedReaderTableSpec} of the output table
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @param transformation the {@link TransformationModel} that provides the type mapping information
-     * @return a {@link TypeMapping} corresponding to the provided parameters
-     */
-    TypeMapping<V> create(final TypedReaderTableSpec<T> spec, final C readerSpecificConfig,
-        final TransformationModel<T> transformation);
-
-    /**
-     * Creates a {@link TypeMapping} for the provided {@link TableSpecConfig}.
-     *
-     * @param config the {@link TableSpecConfig} holding the type mapping
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return the {@link TypeMapping} based on the {@link TableSpecConfig table spec config information}
-     */
-    TypeMapping<V> create(TableSpecConfig config, C readerSpecificConfig);
+    // marker "interface"
 
 }

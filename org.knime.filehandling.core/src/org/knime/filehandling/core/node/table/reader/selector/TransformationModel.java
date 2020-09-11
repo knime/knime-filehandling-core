@@ -44,72 +44,61 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Mar 27, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Jul 31, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.filehandling.core.node.table.reader.type.mapping;
-
-import java.util.function.Function;
+package org.knime.filehandling.core.node.table.reader.selector;
 
 import org.knime.core.data.convert.map.ProductionPath;
-import org.knime.filehandling.core.node.table.reader.ReadAdapterFactory;
-import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig;
-import org.knime.filehandling.core.node.table.reader.config.TableSpecConfig;
-import org.knime.filehandling.core.node.table.reader.selector.TransformationModel;
 import org.knime.filehandling.core.node.table.reader.spec.TypedReaderColumnSpec;
 import org.knime.filehandling.core.node.table.reader.spec.TypedReaderTableSpec;
 
 /**
- * Default implementation of a {@link TypeMappingFactory} based on KNIME's type mapping framework.
+ * The model of a selector. </br>
+ * Specifies type mapping, column filtering and reordering information.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig}
- * @param <T> the type identifying external data types
- * @param <V> the type of values
- * @noreference non-public API
- * @noinstantiate non-public API
+ * @param <T> type used to identify external types
  */
-public final class DefaultTypeMappingFactory<C extends ReaderSpecificConfig<C>, T, V>
-    implements TypeMappingFactory<C, T, V> {
-
-    private final ReadAdapterFactory<T, V> m_readAdapterFactory;
-
-    private final Function<T, ProductionPath> m_defaultProductionPathFn;
+public interface TransformationModel<T> {
 
     /**
-     * Constructor.
+     * Retrieves the currently configured {@link ProductionPath} for the column {@link TypedReaderColumnSpec
+     * columnSpec}.
      *
-     * @param readAdapterFactory provides reader specific information for type mapping
-     * @param defaultProductionPathFn provides default production paths
+     * @param column one of the columns in the currently set rawSpec
+     * @return the currently configured {@link ProductionPath} for {@link TypedReaderColumnSpec column}
      */
-    public DefaultTypeMappingFactory(final ReadAdapterFactory<T, V> readAdapterFactory, final Function<T, ProductionPath> defaultProductionPathFn) {
-        m_readAdapterFactory = readAdapterFactory;
-        m_defaultProductionPathFn = defaultProductionPathFn;
-    }
+    ProductionPath getProductionPath(final TypedReaderColumnSpec<T> column);
 
-    @Override
-    public TypeMapping<V> create(final TypedReaderTableSpec<T> mergedSpec, final C config) {
-        final ProductionPath[] paths = mergedSpec.stream()//
-            .map(TypedReaderColumnSpec::getType)//
-            .map(m_defaultProductionPathFn)//
-            .toArray(ProductionPath[]::new);
-        return create(paths, config);
-    }
+    /**
+     * Returns the name that should be used for {@link TypedReaderColumnSpec column}.
+     *
+     * @param column the name for which to fetch the possibly new name
+     * @return the final output name for {@link TypedReaderColumnSpec column}
+     */
+    String getName(final TypedReaderColumnSpec<T> column);
 
-    @Override
-    public TypeMapping<V> create(final TableSpecConfig config, final C readerSpecificConfig) {
-        return create(config.getProductionPaths(), readerSpecificConfig);
-    }
+    /**
+     * Specifies whether the provided {@link TypedReaderColumnSpec} should be part of the output table.
+     *
+     * @param column the columnSpec in question
+     * @return {@code true} if {@link TypedReaderColumnSpec column} should be kept in the output table
+     */
+    boolean keep(final TypedReaderColumnSpec<T> column);
 
-    private TypeMapping<V> create(final ProductionPath[] paths, final C config) {
-        return new DefaultTypeMapping<>(m_readAdapterFactory::createReadAdapter, paths, config);
-    }
+    /**
+     * Specifies the position of the provided {@link TypedReaderColumnSpec} in the output table.
+     *
+     * @param column the {@link TypedReaderColumnSpec} in question
+     * @return the position of {@link TypedReaderColumnSpec column} in the output table
+     */
+    int getPosition(final TypedReaderColumnSpec<T> column);
 
-    @Override
-    public TypeMapping<V> create(final TypedReaderTableSpec<T> spec, final C readerSpecificConfig,
-        final TransformationModel<T> transformation) {
-        final ProductionPath[] paths = spec.stream()//
-            .map(transformation::getProductionPath)//
-            .toArray(ProductionPath[]::new);
-        return create(paths, readerSpecificConfig);
-    }
+    /**
+     * Retrieves the {@link TypedReaderTableSpec} this {@link TransformationModel} operates on.
+     *
+     * @return the {@link TypedReaderTableSpec} underlying this {@link TransformationModel}
+     */
+    TypedReaderTableSpec<T> getRawSpec();
+
 }

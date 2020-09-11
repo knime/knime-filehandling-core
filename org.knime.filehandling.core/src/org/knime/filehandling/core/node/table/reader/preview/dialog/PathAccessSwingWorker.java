@@ -44,55 +44,65 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Mar 27, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Aug 12, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.filehandling.core.node.table.reader.type.mapping;
+package org.knime.filehandling.core.node.table.reader.preview.dialog;
 
-import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig;
-import org.knime.filehandling.core.node.table.reader.config.TableSpecConfig;
-import org.knime.filehandling.core.node.table.reader.selector.TransformationModel;
-import org.knime.filehandling.core.node.table.reader.spec.TypedReaderTableSpec;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+
+import org.knime.core.node.NodeLogger;
+import org.knime.core.util.Pair;
+import org.knime.core.util.SwingWorkerWithContext;
+import org.knime.filehandling.core.defaultnodesettings.filechooser.reader.ReadPathAccessor;
 
 /**
- * Creates {@link TypeMapping TypeMappings} from {@link TypedReaderTableSpec ReaderTableSpecs} or based on a
- * {@link TableSpecConfig}.
+ * A {@link SwingWorkerWithContext} that retrieves the paths of a {@link ReadPathAccessor} asynchronously.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig}
- * @param <T> the type used to represent external data types
- * @param <V> the type of values
- * @noreference non-public API
- * @noimplement non-public API
  */
-public interface TypeMappingFactory<C extends ReaderSpecificConfig<C>, T, V> {
+final class PathAccessSwingWorker extends SwingWorkerWithContext<Pair<Path, List<Path>>, Void> {
 
-    /**
-     * Creates a {@link TypeMapping} for the provided {@link TypedReaderTableSpec}.
-     *
-     * @param spec the {@link TypedReaderTableSpec} to create a TypeMapping for
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return a {@link TypeMapping} for {@link TypedReaderTableSpec spec}
-     */
-    TypeMapping<V> create(TypedReaderTableSpec<T> spec, C readerSpecificConfig);
+    private static final int DELAY = 200;
 
-    /**
-     * Creates a {@link TypeMapping} for the provided parameters.
-     *
-     * @param spec the {@link TypedReaderTableSpec} of the output table
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @param transformation the {@link TransformationModel} that provides the type mapping information
-     * @return a {@link TypeMapping} corresponding to the provided parameters
-     */
-    TypeMapping<V> create(final TypedReaderTableSpec<T> spec, final C readerSpecificConfig,
-        final TransformationModel<T> transformation);
+    private static final NodeLogger LOGGER = NodeLogger.getLogger(PathAccessSwingWorker.class);
 
-    /**
-     * Creates a {@link TypeMapping} for the provided {@link TableSpecConfig}.
-     *
-     * @param config the {@link TableSpecConfig} holding the type mapping
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return the {@link TypeMapping} based on the {@link TableSpecConfig table spec config information}
-     */
-    TypeMapping<V> create(TableSpecConfig config, C readerSpecificConfig);
+    private final ReadPathAccessor m_pathAccessor;
+
+    private final Consumer<Pair<Path, List<Path>>> m_pathsConsumer;
+
+    private final Consumer<ExecutionException> m_exceptionConsumer;
+
+    PathAccessSwingWorker(final ReadPathAccessor pathAccessor, final Consumer<Pair<Path, List<Path>>> pathsConsumer, final Consumer<ExecutionException> exceptionConsumer) {
+        m_pathAccessor = pathAccessor;
+        m_pathsConsumer = pathsConsumer;
+        m_exceptionConsumer = exceptionConsumer;
+    }
+
+    @Override
+    protected Pair<Path, List<Path>> doInBackgroundWithContext() throws Exception {
+        Thread.sleep(DELAY);
+        final Path rootPath = m_pathAccessor.getRootPath(s -> {});
+        final List<Path> paths = m_pathAccessor.getPaths(s -> {});
+        return new Pair<>(rootPath, paths);
+    }
+
+    @Override
+    protected void doneWithContext() {
+        if (!isCancelled()) {
+            try {
+                final Pair<Path, List<Path>> rootPathAndPaths = get();
+                m_pathsConsumer.accept(rootPathAndPaths);
+            } catch (InterruptedException ex) {// NOSONAR
+                // shouldn't happen because doneWithContext is only called when doInBackgroundWithContext is done
+                // therefore get() doesn't block and we can't be interrupted
+                LOGGER.error("InterruptedException encountered even though isCancelled() returned false.", ex);
+            } catch (ExecutionException ex) {
+                m_exceptionConsumer.accept(ex);
+            }
+        }
+    }
 
 }

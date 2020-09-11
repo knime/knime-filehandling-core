@@ -44,81 +44,91 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jun 12, 2020 (Adrian Nembach): created
+ *   Aug 13, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.filehandling.core.node.table.reader.config;
+package org.knime.filehandling.core.node.table.reader.preview;
 
-import org.knime.filehandling.core.node.table.reader.SpecMergeMode;
+import java.util.NoSuchElementException;
+import java.util.concurrent.CopyOnWriteArraySet;
+
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
+import org.knime.core.data.DataRow;
+import org.knime.core.data.container.CloseableRowIterator;
+import org.knime.filehandling.core.node.table.reader.PreviewIteratorException;
+import org.knime.filehandling.core.node.table.reader.PreviewRowIterator;
 
 /**
- * Abstract implementation of a {@link MultiTableReadConfig} that provides getters and setters but doesn't implement
- * serialization.
+ * A {@link CloseableRowIterator} that allows to register {@link ChangeListener listeners} that are called if the
+ * underlying {@link PreviewRowIterator} throws a {@link PreviewIteratorException}.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig} used in the node implementation
- * @param <TC> the type of {@link TableReadConfig} used in the node implementation
- * @noreference non-public API
- * @noextend non-public API
  */
-public abstract class AbstractMultiTableReadConfig<C extends ReaderSpecificConfig<C>, TC extends TableReadConfig<C>>
-    implements MultiTableReadConfig<C> {
+final class ObservablePreviewIterator extends CloseableRowIterator {
 
-    private final TC m_tableReadConfig;
+    private final CopyOnWriteArraySet<ChangeListener> m_errorListeners = new CopyOnWriteArraySet<>();
 
-    private TableSpecConfig m_tableSpecConfig = null;
+    private final ChangeEvent m_changeEvent = new ChangeEvent(this);
 
-    private SpecMergeMode m_specMergeMode = SpecMergeMode.FAIL_ON_DIFFERING_SPECS;
+    private final PreviewRowIterator m_iterator;
 
-    /**
-     * Constructor.
-     *
-     * @param tableReadConfig holding settings for reading a single table
-     */
-    protected AbstractMultiTableReadConfig(final TC tableReadConfig) {
-        m_tableReadConfig = tableReadConfig;
+    private long m_currentRowIdx = -1;
+
+    private String m_errorMsg = null;
+
+    ObservablePreviewIterator(final PreviewRowIterator iterator) {
+        m_iterator = iterator;
+    }
+
+    void addErrorListener(final ChangeListener errorListener) {
+        m_errorListeners.add(errorListener);//NOSONAR a small price to pay for thread-safety
+    }
+
+    private void notifyErrorListeners() {
+        for (ChangeListener listener : m_errorListeners) {
+            listener.stateChanged(m_changeEvent);
+        }
+    }
+
+    public long getCurrentRowIdx() {
+        return m_currentRowIdx;
+    }
+
+    public String getErrorMsg() {
+        return m_errorMsg;
     }
 
     @Override
-    public TC getTableReadConfig() {
-        return m_tableReadConfig;
+    public void close() {
+        m_errorListeners.clear();
+        m_iterator.close();
     }
 
     @Override
-    public SpecMergeMode getSpecMergeMode() {
-        return m_specMergeMode;
-    }
-
-    /**
-     * Sets the {@link SpecMergeMode}.
-     *
-     * @param mode {@link SpecMergeMode} to use
-     */
-    public void setSpecMergeMode(final SpecMergeMode mode) {
-        m_specMergeMode = mode;
+    public boolean hasNext() {
+        try {
+            return m_errorMsg == null && m_iterator.hasNext();
+        } catch (PreviewIteratorException pie) { // NOSONAR, the exception is handled appropriately
+            m_errorMsg = pie.getMessage();
+            notifyErrorListeners();
+            return false;
+        }
     }
 
     @Override
-    public TableSpecConfig getTableSpecConfig() {
-        return m_tableSpecConfig;
-    }
-
-    @Override
-    public boolean hasTableSpecConfig() {
-        return m_tableSpecConfig != null;
-    }
-
-    @Override
-    public void setTableSpecConfig(final TableSpecConfig config) {
-        m_tableSpecConfig = config;
-    }
-
-    /**
-     * Convenience getter for the {@link ReaderSpecificConfig}.
-     *
-     * @return the {@link ReaderSpecificConfig}
-     */
-    public C getReaderSpecificConfig() {
-        return m_tableReadConfig.getReaderSpecificConfig();
+    public DataRow next() {
+        if (!hasNext()) {
+            throw new NoSuchElementException();
+        }
+        m_currentRowIdx++;
+        try {
+            return m_iterator.next();
+        } catch (PreviewIteratorException pie) { // NOSONAR, the exception is handled appropriately
+            m_errorMsg = pie.getMessage();
+            notifyErrorListeners();
+            throw new NoSuchElementException(pie.getMessage());
+        }
     }
 
 }

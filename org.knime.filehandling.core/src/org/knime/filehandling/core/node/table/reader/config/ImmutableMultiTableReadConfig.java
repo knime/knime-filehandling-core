@@ -44,72 +44,64 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Mar 27, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Aug 12, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.filehandling.core.node.table.reader.type.mapping;
+package org.knime.filehandling.core.node.table.reader.config;
 
-import java.util.function.Function;
-
-import org.knime.core.data.convert.map.ProductionPath;
-import org.knime.filehandling.core.node.table.reader.ReadAdapterFactory;
-import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig;
-import org.knime.filehandling.core.node.table.reader.config.TableSpecConfig;
-import org.knime.filehandling.core.node.table.reader.selector.TransformationModel;
-import org.knime.filehandling.core.node.table.reader.spec.TypedReaderColumnSpec;
-import org.knime.filehandling.core.node.table.reader.spec.TypedReaderTableSpec;
+import org.knime.core.node.util.CheckUtils;
+import org.knime.filehandling.core.node.table.reader.SpecMergeMode;
 
 /**
- * Default implementation of a {@link TypeMappingFactory} based on KNIME's type mapping framework.
+ * An immutable implementation of {@link MultiTableReadConfig} i.e. objects of this class guarantee that their state
+ * doesn't change after initialization.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  * @param <C> the type of {@link ReaderSpecificConfig}
- * @param <T> the type identifying external data types
- * @param <V> the type of values
- * @noreference non-public API
- * @noinstantiate non-public API
  */
-public final class DefaultTypeMappingFactory<C extends ReaderSpecificConfig<C>, T, V>
-    implements TypeMappingFactory<C, T, V> {
+public final class ImmutableMultiTableReadConfig<C extends ReaderSpecificConfig<C>> implements MultiTableReadConfig<C> {
 
-    private final ReadAdapterFactory<T, V> m_readAdapterFactory;
+    private final ImmutableTableReadConfig<C> m_tableReadConfig;
 
-    private final Function<T, ProductionPath> m_defaultProductionPathFn;
+    private final TableSpecConfig m_tableSpecConfig;
+
+    private final SpecMergeMode m_specMergeMode;
 
     /**
      * Constructor.
      *
-     * @param readAdapterFactory provides reader specific information for type mapping
-     * @param defaultProductionPathFn provides default production paths
+     * @param multiTableReadConfig the {@link MultiTableReadConfig} this should represent an immutable copy of
      */
-    public DefaultTypeMappingFactory(final ReadAdapterFactory<T, V> readAdapterFactory, final Function<T, ProductionPath> defaultProductionPathFn) {
-        m_readAdapterFactory = readAdapterFactory;
-        m_defaultProductionPathFn = defaultProductionPathFn;
+    public ImmutableMultiTableReadConfig(final MultiTableReadConfig<C> multiTableReadConfig) {
+        CheckUtils.checkArgumentNotNull(multiTableReadConfig, "The multiTableReadConfig parameter must not be null");
+        m_tableReadConfig = new ImmutableTableReadConfig<>(multiTableReadConfig.getTableReadConfig());
+        m_tableSpecConfig = multiTableReadConfig.hasTableSpecConfig() ? multiTableReadConfig.getTableSpecConfig() : null;
+        m_specMergeMode = multiTableReadConfig.getSpecMergeMode();
+
     }
 
     @Override
-    public TypeMapping<V> create(final TypedReaderTableSpec<T> mergedSpec, final C config) {
-        final ProductionPath[] paths = mergedSpec.stream()//
-            .map(TypedReaderColumnSpec::getType)//
-            .map(m_defaultProductionPathFn)//
-            .toArray(ProductionPath[]::new);
-        return create(paths, config);
+    public TableReadConfig<C> getTableReadConfig() {
+        return m_tableReadConfig;
     }
 
     @Override
-    public TypeMapping<V> create(final TableSpecConfig config, final C readerSpecificConfig) {
-        return create(config.getProductionPaths(), readerSpecificConfig);
-    }
-
-    private TypeMapping<V> create(final ProductionPath[] paths, final C config) {
-        return new DefaultTypeMapping<>(m_readAdapterFactory::createReadAdapter, paths, config);
+    public SpecMergeMode getSpecMergeMode() {
+        return m_specMergeMode;
     }
 
     @Override
-    public TypeMapping<V> create(final TypedReaderTableSpec<T> spec, final C readerSpecificConfig,
-        final TransformationModel<T> transformation) {
-        final ProductionPath[] paths = spec.stream()//
-            .map(transformation::getProductionPath)//
-            .toArray(ProductionPath[]::new);
-        return create(paths, readerSpecificConfig);
+    public boolean hasTableSpecConfig() {
+        return m_tableSpecConfig != null;
     }
+
+    @Override
+    public TableSpecConfig getTableSpecConfig() {
+        return m_tableSpecConfig;
+    }
+
+    @Override
+    public void setTableSpecConfig(final TableSpecConfig config) {
+        throw new UnsupportedOperationException("ImmutableMultiTableReadConfigs can't be mutated.");
+    }
+
 }

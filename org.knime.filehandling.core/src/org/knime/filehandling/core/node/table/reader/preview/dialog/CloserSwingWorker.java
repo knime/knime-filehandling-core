@@ -44,55 +44,36 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Mar 27, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Aug 7, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.filehandling.core.node.table.reader.type.mapping;
+package org.knime.filehandling.core.node.table.reader.preview.dialog;
 
-import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig;
-import org.knime.filehandling.core.node.table.reader.config.TableSpecConfig;
-import org.knime.filehandling.core.node.table.reader.selector.TransformationModel;
-import org.knime.filehandling.core.node.table.reader.spec.TypedReaderTableSpec;
+import org.knime.core.node.NodeLogger;
+import org.knime.core.util.SwingWorkerWithContext;
 
 /**
- * Creates {@link TypeMapping TypeMappings} from {@link TypedReaderTableSpec ReaderTableSpecs} or based on a
- * {@link TableSpecConfig}.
+ * {@link SwingWorkerWithContext} that closes an {@link AutoCloseable} asynchronously.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig}
- * @param <T> the type used to represent external data types
- * @param <V> the type of values
- * @noreference non-public API
- * @noimplement non-public API
  */
-public interface TypeMappingFactory<C extends ReaderSpecificConfig<C>, T, V> {
+final class CloserSwingWorker extends SwingWorkerWithContext<Void, Void> {
 
-    /**
-     * Creates a {@link TypeMapping} for the provided {@link TypedReaderTableSpec}.
-     *
-     * @param spec the {@link TypedReaderTableSpec} to create a TypeMapping for
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return a {@link TypeMapping} for {@link TypedReaderTableSpec spec}
-     */
-    TypeMapping<V> create(TypedReaderTableSpec<T> spec, C readerSpecificConfig);
+    private static final NodeLogger LOGGER = NodeLogger.getLogger(CloserSwingWorker.class);
 
-    /**
-     * Creates a {@link TypeMapping} for the provided parameters.
-     *
-     * @param spec the {@link TypedReaderTableSpec} of the output table
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @param transformation the {@link TransformationModel} that provides the type mapping information
-     * @return a {@link TypeMapping} corresponding to the provided parameters
-     */
-    TypeMapping<V> create(final TypedReaderTableSpec<T> spec, final C readerSpecificConfig,
-        final TransformationModel<T> transformation);
+    private final AutoCloseable m_closeable;
 
-    /**
-     * Creates a {@link TypeMapping} for the provided {@link TableSpecConfig}.
-     *
-     * @param config the {@link TableSpecConfig} holding the type mapping
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return the {@link TypeMapping} based on the {@link TableSpecConfig table spec config information}
-     */
-    TypeMapping<V> create(TableSpecConfig config, C readerSpecificConfig);
+    CloserSwingWorker(final AutoCloseable closeable) {
+        m_closeable = closeable;
+    }
 
+    @Override
+    protected Void doInBackgroundWithContext() throws Exception {
+        try {
+            m_closeable.close();
+        } catch (Exception ex) {
+            LOGGER.debug(String.format("Closing '%s' failed.", m_closeable), ex);
+            throw ex;
+        }
+        return null;
+    }
 }

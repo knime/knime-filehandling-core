@@ -44,55 +44,55 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Mar 27, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Aug 14, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.filehandling.core.node.table.reader.type.mapping;
+package org.knime.filehandling.core.node.table.reader.selector;
 
-import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig;
-import org.knime.filehandling.core.node.table.reader.config.TableSpecConfig;
-import org.knime.filehandling.core.node.table.reader.selector.TransformationModel;
+import javax.swing.event.ChangeListener;
+
 import org.knime.filehandling.core.node.table.reader.spec.TypedReaderTableSpec;
 
 /**
- * Creates {@link TypeMapping TypeMappings} from {@link TypedReaderTableSpec ReaderTableSpecs} or based on a
- * {@link TableSpecConfig}.
+ * A {@link TransformationModel} that allows to register {@link ChangeListener ChangeListeners} that are notified
+ * whenever the model changes.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig}
- * @param <T> the type used to represent external data types
- * @param <V> the type of values
- * @noreference non-public API
- * @noimplement non-public API
+ * @param <T> The type used to identify external data types
  */
-public interface TypeMappingFactory<C extends ReaderSpecificConfig<C>, T, V> {
+public interface MutableTransformationModel<T> extends TransformationModel<T> {
 
     /**
-     * Creates a {@link TypeMapping} for the provided {@link TypedReaderTableSpec}.
+     * Adds the provided {@link ChangeListener}.
      *
-     * @param spec the {@link TypedReaderTableSpec} to create a TypeMapping for
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return a {@link TypeMapping} for {@link TypedReaderTableSpec spec}
+     * @param listener to add
      */
-    TypeMapping<V> create(TypedReaderTableSpec<T> spec, C readerSpecificConfig);
+    void addChangeListener(final ChangeListener listener);
 
     /**
-     * Creates a {@link TypeMapping} for the provided parameters.
+     * Removes the provided {@link ChangeListener}.
      *
-     * @param spec the {@link TypedReaderTableSpec} of the output table
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @param transformation the {@link TransformationModel} that provides the type mapping information
-     * @return a {@link TypeMapping} corresponding to the provided parameters
+     * @param listener to remove
      */
-    TypeMapping<V> create(final TypedReaderTableSpec<T> spec, final C readerSpecificConfig,
-        final TransformationModel<T> transformation);
+    void removeChangeListener(final ChangeListener listener);
 
     /**
-     * Creates a {@link TypeMapping} for the provided {@link TableSpecConfig}.
+     * Updates the raw {@link TypedReaderTableSpec} i.e. before type mapping, renaming, filtering or reordering.
      *
-     * @param config the {@link TableSpecConfig} holding the type mapping
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return the {@link TypeMapping} based on the {@link TableSpecConfig table spec config information}
+     * @param rawSpec the raw {@link TypedReaderTableSpec}
      */
-    TypeMapping<V> create(TableSpecConfig config, C readerSpecificConfig);
+    void updateRawSpec(final TypedReaderTableSpec<T> rawSpec);
 
+    /**
+     * Adapts this instance so that behaves exactly the same as the provided {@link TransformationModel}.
+     *
+     * @param transformationModel to imitate
+     */
+    void imitate(final TransformationModel<T> transformationModel);
+
+    /**
+     * Enables or disables this instance, depending on the value of {@code enabled}.
+     *
+     * @param enabled {@code true} if the model should be enabled, {@code false} otherwise
+     */
+    void setEnabled(boolean enabled);
 }

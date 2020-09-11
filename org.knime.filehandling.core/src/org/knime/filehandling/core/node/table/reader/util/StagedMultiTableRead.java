@@ -44,72 +44,56 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Mar 27, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Jul 31, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.filehandling.core.node.table.reader.type.mapping;
+package org.knime.filehandling.core.node.table.reader.util;
 
-import java.util.function.Function;
+import java.nio.file.Path;
+import java.util.Collection;
 
-import org.knime.core.data.convert.map.ProductionPath;
-import org.knime.filehandling.core.node.table.reader.ReadAdapterFactory;
-import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig;
-import org.knime.filehandling.core.node.table.reader.config.TableSpecConfig;
 import org.knime.filehandling.core.node.table.reader.selector.TransformationModel;
+import org.knime.filehandling.core.node.table.reader.spec.ReaderTableSpec;
 import org.knime.filehandling.core.node.table.reader.spec.TypedReaderColumnSpec;
 import org.knime.filehandling.core.node.table.reader.spec.TypedReaderTableSpec;
 
 /**
- * Default implementation of a {@link TypeMappingFactory} based on KNIME's type mapping framework.
+ * Represents the raw state of a multi table read i.e. before type mapping, renaming, filtering or reordering.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig}
- * @param <T> the type identifying external data types
- * @param <V> the type of values
- * @noreference non-public API
- * @noinstantiate non-public API
+ * @param <T> the type representing external types
  */
-public final class DefaultTypeMappingFactory<C extends ReaderSpecificConfig<C>, T, V>
-    implements TypeMappingFactory<C, T, V> {
-
-    private final ReadAdapterFactory<T, V> m_readAdapterFactory;
-
-    private final Function<T, ProductionPath> m_defaultProductionPathFn;
+public interface StagedMultiTableRead<T> {
 
     /**
-     * Constructor.
+     * Creates a {@link MultiTableRead} that uses the default settings i.e. the default type mapping, no filtering, no
+     * renaming and no reordering.
      *
-     * @param readAdapterFactory provides reader specific information for type mapping
-     * @param defaultProductionPathFn provides default production paths
+     * @return a {@link MultiTableRead} that uses the defaults
      */
-    public DefaultTypeMappingFactory(final ReadAdapterFactory<T, V> readAdapterFactory, final Function<T, ProductionPath> defaultProductionPathFn) {
-        m_readAdapterFactory = readAdapterFactory;
-        m_defaultProductionPathFn = defaultProductionPathFn;
-    }
+    MultiTableRead withoutTransformation();
 
-    @Override
-    public TypeMapping<V> create(final TypedReaderTableSpec<T> mergedSpec, final C config) {
-        final ProductionPath[] paths = mergedSpec.stream()//
-            .map(TypedReaderColumnSpec::getType)//
-            .map(m_defaultProductionPathFn)//
-            .toArray(ProductionPath[]::new);
-        return create(paths, config);
-    }
+    /**
+     * Creates a {@link MultiTableRead} using the given {@link TransformationModel}.
+     *
+     * @param selectorModel specifies the type mapping, column renaming, filtering and reordering
+     * @return a {@link MultiTableRead} using the provided {@link TransformationModel}
+     */
+    MultiTableRead withTransformation(final TransformationModel<T> selectorModel);
 
-    @Override
-    public TypeMapping<V> create(final TableSpecConfig config, final C readerSpecificConfig) {
-        return create(config.getProductionPaths(), readerSpecificConfig);
-    }
+    /**
+     * Returns the raw {@link ReaderTableSpec} consisting of {@link TypedReaderColumnSpec}. Raw means before any type
+     * mapping, column filtering or reordering. To be used to make the mentioned operations configurable.
+     *
+     * @return the raw {@link ReaderTableSpec} i.e. before type mapping, column filtering or reordering
+     */
+    TypedReaderTableSpec<T> getRawSpec();
 
-    private TypeMapping<V> create(final ProductionPath[] paths, final C config) {
-        return new DefaultTypeMapping<>(m_readAdapterFactory::createReadAdapter, paths, config);
-    }
+    /**
+     * Checks if the provided <b>paths</b> match the paths used to instantiate this MultiTableRead.
+     *
+     * @param paths to read from
+     * @return {@code true} if the provided <b>paths</b> are valid
+     */
+    boolean isValidFor(final Collection<Path> paths);
 
-    @Override
-    public TypeMapping<V> create(final TypedReaderTableSpec<T> spec, final C readerSpecificConfig,
-        final TransformationModel<T> transformation) {
-        final ProductionPath[] paths = spec.stream()//
-            .map(transformation::getProductionPath)//
-            .toArray(ProductionPath[]::new);
-        return create(paths, readerSpecificConfig);
-    }
 }

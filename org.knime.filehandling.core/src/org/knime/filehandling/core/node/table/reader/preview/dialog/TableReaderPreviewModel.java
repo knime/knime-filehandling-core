@@ -44,55 +44,75 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Mar 27, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Aug 7, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.filehandling.core.node.table.reader.type.mapping;
+package org.knime.filehandling.core.node.table.reader.preview.dialog;
 
-import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig;
-import org.knime.filehandling.core.node.table.reader.config.TableSpecConfig;
-import org.knime.filehandling.core.node.table.reader.selector.TransformationModel;
-import org.knime.filehandling.core.node.table.reader.spec.TypedReaderTableSpec;
+import org.knime.core.node.tableview.TableContentModel;
+import org.knime.core.node.util.ViewUtils;
+import org.knime.filehandling.core.node.table.reader.preview.PreviewDataTable;
 
 /**
- * Creates {@link TypeMapping TypeMappings} from {@link TypedReaderTableSpec ReaderTableSpecs} or based on a
- * {@link TableSpecConfig}.
+ * The model of the table reader preview.</br>
+ * It manages the table content as well as the analysis components (progress bar and warning/error labels)
  *
+ * @author Simon Schmid, KNIME GmbH, Konstanz, Germany
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig}
- * @param <T> the type used to represent external data types
- * @param <V> the type of values
- * @noreference non-public API
- * @noimplement non-public API
  */
-public interface TypeMappingFactory<C extends ReaderSpecificConfig<C>, T, V> {
+public final class TableReaderPreviewModel {
+
+    private final TableContentModel m_previewTableModel = new TableContentModel();
+
+    private final AnalysisComponentModel m_analysisComponentModel;
+
+    private PreviewDataTable m_previewTable = null;
 
     /**
-     * Creates a {@link TypeMapping} for the provided {@link TypedReaderTableSpec}.
-     *
-     * @param spec the {@link TypedReaderTableSpec} to create a TypeMapping for
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return a {@link TypeMapping} for {@link TypedReaderTableSpec spec}
+     * @param analysisComponent
      */
-    TypeMapping<V> create(TypedReaderTableSpec<T> spec, C readerSpecificConfig);
+    public TableReaderPreviewModel(final AnalysisComponentModel analysisComponent) {
+        m_analysisComponentModel = analysisComponent;
+        m_analysisComponentModel.setVisible(false);
+    }
+
+    AnalysisComponentModel getAnalysisComponent() {
+        return m_analysisComponentModel;
+    }
+
+    TableContentModel getPreviewTableModel() {
+        return m_previewTableModel;
+    }
+
+    void setDataTable(final PreviewDataTable previewTable) {
+        final PreviewDataTable oldTable = m_previewTable;
+        m_previewTable = previewTable;
+
+        // register a listener for error messages
+        // (because of lazy loading an error does not occur until the user scrolls down to the respective row)
+        if (previewTable != null) {
+            previewTable.addErrorListener(m_analysisComponentModel::setError);
+        }
+
+        ViewUtils.invokeLaterInEDT(() -> {
+            // set the new table in the view
+            m_previewTableModel.setDataTable(previewTable);
+            // properly dispose of the old table
+            if (oldTable != null) {
+                oldTable.close();
+            }
+        });
+    }
 
     /**
-     * Creates a {@link TypeMapping} for the provided parameters.
-     *
-     * @param spec the {@link TypedReaderTableSpec} of the output table
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @param transformation the {@link TransformationModel} that provides the type mapping information
-     * @return a {@link TypeMapping} corresponding to the provided parameters
+     * Cancels potentially running threads and disposes of the allocated resources.
      */
-    TypeMapping<V> create(final TypedReaderTableSpec<T> spec, final C readerSpecificConfig,
-        final TransformationModel<T> transformation);
-
-    /**
-     * Creates a {@link TypeMapping} for the provided {@link TableSpecConfig}.
-     *
-     * @param config the {@link TableSpecConfig} holding the type mapping
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return the {@link TypeMapping} based on the {@link TableSpecConfig table spec config information}
-     */
-    TypeMapping<V> create(TableSpecConfig config, C readerSpecificConfig);
+    public void onClose() {
+        if (m_previewTable != null) {
+            m_previewTableModel.setDataTable(null);
+            m_previewTable.close();
+            m_previewTable = null;
+        }
+        m_analysisComponentModel.reset();
+    }
 
 }

@@ -44,55 +44,63 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Mar 27, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Feb 3, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.filehandling.core.node.table.reader.type.mapping;
+package org.knime.filehandling.core.node.table.reader.config;
 
-import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig;
-import org.knime.filehandling.core.node.table.reader.config.TableSpecConfig;
-import org.knime.filehandling.core.node.table.reader.selector.TransformationModel;
-import org.knime.filehandling.core.node.table.reader.spec.TypedReaderTableSpec;
+import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeSettingsRO;
+import org.knime.core.node.NodeSettingsWO;
+import org.knime.core.node.NotConfigurableException;
+import org.knime.core.node.port.PortObjectSpec;
 
 /**
- * Creates {@link TypeMapping TypeMappings} from {@link TypedReaderTableSpec ReaderTableSpecs} or based on a
- * {@link TableSpecConfig}.
+ * Base interface for configuration classes used in the table reader framework.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig}
- * @param <T> the type used to represent external data types
- * @param <V> the type of values
  * @noreference non-public API
  * @noimplement non-public API
  */
-public interface TypeMappingFactory<C extends ReaderSpecificConfig<C>, T, V> {
+public interface StorableReaderConfig {
 
     /**
-     * Creates a {@link TypeMapping} for the provided {@link TypedReaderTableSpec}.
+     * Loads the configuration in the dialog.
      *
-     * @param spec the {@link TypedReaderTableSpec} to create a TypeMapping for
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return a {@link TypeMapping} for {@link TypedReaderTableSpec spec}
+     * @param settings to load from
+     * @param specs input {@link PortObjectSpec specs} of the node
+     * @throws NotConfigurableException if the node can't be configured
      */
-    TypeMapping<V> create(TypedReaderTableSpec<T> spec, C readerSpecificConfig);
+    void loadInDialog(final NodeSettingsRO settings, PortObjectSpec[] specs) throws NotConfigurableException;
 
     /**
-     * Creates a {@link TypeMapping} for the provided parameters.
+     * Loads the configuration in the node model.
      *
-     * @param spec the {@link TypedReaderTableSpec} of the output table
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @param transformation the {@link TransformationModel} that provides the type mapping information
-     * @return a {@link TypeMapping} corresponding to the provided parameters
+     * @param settings to load from
+     * @throws InvalidSettingsException if the settings are invalid or can't be loaded
      */
-    TypeMapping<V> create(final TypedReaderTableSpec<T> spec, final C readerSpecificConfig,
-        final TransformationModel<T> transformation);
+    void loadInModel(final NodeSettingsRO settings) throws InvalidSettingsException;
 
     /**
-     * Creates a {@link TypeMapping} for the provided {@link TableSpecConfig}.
+     * Checks that this configuration can be loaded from the provided settings.
      *
-     * @param config the {@link TableSpecConfig} holding the type mapping
-     * @param readerSpecificConfig the {@link ReaderSpecificConfig}
-     * @return the {@link TypeMapping} based on the {@link TableSpecConfig table spec config information}
+     * @param settings to validate
+     * @throws InvalidSettingsException if the settings are invalid
      */
-    TypeMapping<V> create(TableSpecConfig config, C readerSpecificConfig);
+    void validate(final NodeSettingsRO settings) throws InvalidSettingsException;
+
+    /**
+     * Saves the configuration to settings in the node model.
+     *
+     * @param settings to save to
+     */
+    void saveInModel(final NodeSettingsWO settings);
+
+    /**
+     * Saves the configuration to settings in the node dialog.
+     *
+     * @param settings to save to
+     * @throws InvalidSettingsException if the config is invalid
+     */
+    void saveInDialog(final NodeSettingsWO settings) throws InvalidSettingsException;
 
 }
