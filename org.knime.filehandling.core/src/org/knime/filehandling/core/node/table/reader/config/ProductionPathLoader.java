@@ -44,51 +44,43 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Sep 11, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Nov 27, 2020 (Tobias): created
  */
-package org.knime.filehandling.core.node.table.reader.preview.dialog.transformer;
+package org.knime.filehandling.core.node.table.reader.config;
 
-import java.awt.Component;
+import java.util.Optional;
 
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.ListCellRenderer;
-
-import org.knime.core.data.DataCell;
-import org.knime.core.data.DataType;
-import org.knime.core.data.convert.datacell.JavaToDataCellConverterFactory;
+import org.knime.core.data.convert.datacell.JavaToDataCellConverterRegistry;
+import org.knime.core.data.convert.map.ProducerRegistry;
 import org.knime.core.data.convert.map.ProductionPath;
-import org.knime.core.node.util.DataTypeListCellRenderer;
-import org.knime.core.node.util.SharedIcons;
+import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeSettingsRO;
 
 /**
- * {@link ListCellRenderer} for {@link ProductionPath} that displays only the destination KNIME {@link DataType}.
+ * Loads {@link ProductionPath}s.
  *
- * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
+ * @author Tobias Koetter, KNIME GmbH, Konstanz, Germany
+ * @noimplement non-public API
+ * @noreference non-public API
  */
-final class KnimeTypeProductionPathListCellRenderer implements ListCellRenderer<ProductionPath> {
+public interface ProductionPathLoader {
 
-    private final DataTypeListCellRenderer m_dataTypeRenderer = new DataTypeListCellRenderer();
+    /**
+     * Load a {@link ProductionPath} from given config.
+     *
+     * @param config Config to load from
+     * @param key setting key
+     * @return an optional {@link ProductionPath}, present if the converter factory identifier was found in the
+     *         {@link JavaToDataCellConverterRegistry} and producer factory identifier was found in the registry.
+     * @throws InvalidSettingsException
+     */
+    Optional<ProductionPath> loadProductionPath(NodeSettingsRO config, String key) throws InvalidSettingsException;
 
-    private static final JLabel UNKNOWN = new JLabel(SharedIcons.TYPE_DEFAULT.get());
-
-    @Override
-    public Component getListCellRendererComponent(final JList<? extends ProductionPath> list, final ProductionPath value,
-        final int index, final boolean isSelected, final boolean cellHasFocus) {
-        if (value == null) {
-            return UNKNOWN;
-        }
-        final JavaToDataCellConverterFactory<?> converterFactory = value.getConverterFactory();
-        final DataType knimeType = converterFactory.getDestinationType();
-        DataTypeListCellRenderer component = (DataTypeListCellRenderer)m_dataTypeRenderer.getListCellRendererComponent(
-            list, knimeType, index, isSelected, cellHasFocus);
-        Class<?> sourceType = converterFactory.getSourceType();
-        if (DataCell.class == sourceType ) {
-            component.setToolTipText(null);
-        } else {
-            component.setToolTipText("via " + sourceType.getSimpleName());
-        }
-        return component;
-    }
+    /**
+     * Returns the {@link ProducerRegistry} this path loader uses.
+     *
+     * @return the {@link ProducerRegistry} to use
+     */
+    ProducerRegistry<?, ?> getProducerRegistry();
 
 }
