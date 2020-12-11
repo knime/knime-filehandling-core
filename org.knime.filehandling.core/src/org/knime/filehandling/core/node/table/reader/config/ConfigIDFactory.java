@@ -44,20 +44,23 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jan 15, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Dec 21, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.filehandling.core.node.table.reader.config;
 
-import org.knime.core.node.context.DeepCopy;
-
 /**
- * Marker interface for reader specific configurations.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig}
- * @noreference non-public API
- * @noimplement non-public API
+ * @param <C> The type of config this factory can extract a {@link ConfigID} from
  */
-public interface ReaderSpecificConfig<C extends ReaderSpecificConfig<C>> extends DeepCopy<C> {
-    // marker interface
+public interface ConfigIDFactory<C> extends ConfigIDLoader {
+
+    /**
+     * Creates a {@link ConfigID} from the provided <b>config</b>.
+     *
+     * @param config to create the {@link ConfigID} from
+     * @return the {@link ConfigID} identifying <b>config</b>
+     */
+    ConfigID createFromConfig(final C config);
+
 }

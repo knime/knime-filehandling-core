@@ -44,20 +44,56 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jan 15, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Dec 11, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.filehandling.core.node.table.reader.config;
 
-import org.knime.core.node.context.DeepCopy;
+import org.knime.core.node.NodeSettings;
+import org.knime.core.node.NodeSettingsRO;
+import org.knime.core.node.NodeSettingsWO;
 
 /**
- * Marker interface for reader specific configurations.
+ * A {@link ConfigID} that is backed by a {@link NodeSettings} object.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig}
- * @noreference non-public API
- * @noimplement non-public API
  */
-public interface ReaderSpecificConfig<C extends ReaderSpecificConfig<C>> extends DeepCopy<C> {
-    // marker interface
+public final class NodeSettingsConfigID implements ConfigID {
+
+    private final NodeSettings m_settings;
+
+    /**
+     * Constructor.
+     *
+     * @param settings containing the to store
+     */
+    public NodeSettingsConfigID(final NodeSettingsRO settings) {
+        m_settings = new NodeSettings(settings.getKey());
+        settings.copyTo(m_settings);
+    }
+
+    @Override
+    public void save(final NodeSettingsWO settings) {
+        settings.addNodeSettings(m_settings);
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (obj instanceof NodeSettingsConfigID) {
+            NodeSettingsConfigID other = (NodeSettingsConfigID)obj;
+            return m_settings.equals(other.m_settings);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return m_settings.hashCode();
+    }
+
 }

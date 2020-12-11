@@ -44,20 +44,29 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jan 15, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Dec 11, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.filehandling.core.node.table.reader.config;
 
-import org.knime.core.node.context.DeepCopy;
+import org.knime.core.node.NodeSettingsWO;
+import org.knime.filehandling.core.node.table.reader.SourceGroup;
 
 /**
- * Marker interface for reader specific configurations.
+ * A {@link ConfigID} is an immutable identifier of a configuration used to create a {@link TableSpecConfig}.<br>
+ * It is stored as part of the TableSpecConfig and then used in
+ * {@link TableSpecConfig#isConfiguredWith(ConfigID, SourceGroup)} and
+ * {@link TableSpecConfig#isConfiguredWith(ConfigID, String)} to decide if the spec was created with the same config.
+ *
+ * <b>NOTE</b>: Implementing classes MUST override {@link Object#equals(Object)}.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig}
- * @noreference non-public API
- * @noimplement non-public API
  */
-public interface ReaderSpecificConfig<C extends ReaderSpecificConfig<C>> extends DeepCopy<C> {
-    // marker interface
+public interface ConfigID {
+
+    /**
+     * Saves the ConfigID into the provided {@link NodeSettingsWO}.
+     *
+     * @param settings to save to
+     */
+    void save(NodeSettingsWO settings);
 }

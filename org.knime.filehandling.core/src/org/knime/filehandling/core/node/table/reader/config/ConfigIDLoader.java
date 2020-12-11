@@ -44,20 +44,27 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Jan 15, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Dec 15, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
 package org.knime.filehandling.core.node.table.reader.config;
 
-import org.knime.core.node.context.DeepCopy;
+import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeSettingsRO;
 
 /**
- * Marker interface for reader specific configurations.
+ * Loads a {@link ConfigID} from a {@link NodeSettingsConfigID} object.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <C> the type of {@link ReaderSpecificConfig}
- * @noreference non-public API
- * @noimplement non-public API
  */
-public interface ReaderSpecificConfig<C extends ReaderSpecificConfig<C>> extends DeepCopy<C> {
-    // marker interface
+public interface ConfigIDLoader {
+
+    /**
+     * Loads a {@link ConfigID} from the provided {@link NodeSettingsRO}.
+     *
+     * @param settings to load from
+     * @return the loaded {@link ConfigID}
+     * @throws InvalidSettingsException if the settings are invalid e.g. if the loader and the stored ConfigID are
+     *             incompatible
+     */
+    ConfigID createFromSettings(final NodeSettingsRO settings) throws InvalidSettingsException;
 }
