@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
 	<modelVersion>4.0.0</modelVersion>
+
 	<parent>
 		<groupId>org.knime</groupId>
 		<artifactId>knime-filehandling-core</artifactId>
 		<version>${revision}${changelist}</version>
+		<relativePath>../pom.xml</relativePath>
 	</parent>
-	<artifactId>org.knime.filehandling.core.fs.tests.integration</artifactId>
-	<packaging>eclipse-test-plugin</packaging>
+
+	<artifactId>org.knime.update.filehandling.core</artifactId>
+	<packaging>eclipse-repository</packaging>
 
 	<properties>
 		<revision>5.2.0</revision>
@@ -16,18 +20,9 @@
 		<plugins>
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>
-				<artifactId>target-platform-configuration</artifactId>
-				<version>${tycho.version}</version>
+				<artifactId>tycho-p2-repository-plugin</artifactId>
 				<configuration>
-					<dependency-resolution>
-						<extraRequirements>
-							<requirement>
-								<type>eclipse-feature</type>
-								<id>org.knime.features.clfixes</id>
-								<versionRange>0.0.0</versionRange>
-							</requirement>
-						</extraRequirements>
-					</dependency-resolution>
+					<finalName>org.knime.update.filehandling.core_${qualifiedVersion}</finalName>
 				</configuration>
 			</plugin>
 		</plugins>

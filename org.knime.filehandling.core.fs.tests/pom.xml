@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.knime</groupId>
-		<artifactId>knime-base</artifactId>
+		<artifactId>knime-filehandling-core</artifactId>
 		<version>${revision}${changelist}</version>
 	</parent>
 	<artifactId>org.knime.filehandling.core.fs.tests</artifactId>
