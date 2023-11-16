@@ -41,9 +41,12 @@
 		<profile>
 			<id>test</id>
 			<modules>
+				<module>org.knime.features.filehandling.core</module>
+				<module>org.knime.filehandling.core.fs.tests.workflow</module>
 				<module>org.knime.filehandling.core.fs</module>
 				<module>org.knime.filehandling.core.fs.tests</module>
 				<module>org.knime.filehandling.core</module>
+				<module>org.knime.filehandling.core.tests</module>
 				<module>org.knime.filehandling.core.tests.common</module>
 				<!-- File handling examples are intentionally compiled, but not part of any feature.
 				This ensures that we have to maintain the examples. Please don't remove them.-->
