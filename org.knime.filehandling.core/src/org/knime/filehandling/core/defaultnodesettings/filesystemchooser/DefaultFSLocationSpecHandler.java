@@ -53,7 +53,7 @@ import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.workflow.VariableType;
 import org.knime.filehandling.core.connections.FSLocationSpec;
-import org.knime.filehandling.core.data.location.internal.FSLocationSerializationUtils;
+import org.knime.filehandling.core.data.location.FSLocationSerializationUtils;
 import org.knime.filehandling.core.data.location.variable.FSLocationSpecVariableType;
 import org.knime.filehandling.core.defaultnodesettings.filesystemchooser.config.FSLocationSpecHandler;
 import org.knime.filehandling.core.defaultnodesettings.status.DefaultStatusMessage;

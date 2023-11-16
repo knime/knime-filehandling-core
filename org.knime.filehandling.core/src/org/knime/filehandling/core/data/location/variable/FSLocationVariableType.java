@@ -64,7 +64,7 @@ import org.knime.core.node.workflow.FlowVariable;
 import org.knime.core.node.workflow.VariableType;
 import org.knime.core.node.workflow.VariableTypeExtension;
 import org.knime.filehandling.core.connections.FSLocation;
-import org.knime.filehandling.core.data.location.internal.FSLocationSerializationUtils;
+import org.knime.filehandling.core.data.location.FSLocationSerializationUtils;
 
 import com.google.common.collect.Sets;
 

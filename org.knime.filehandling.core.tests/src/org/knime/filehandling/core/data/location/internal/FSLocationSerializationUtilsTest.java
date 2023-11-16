@@ -52,10 +52,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.knime.filehandling.core.connections.FSLocation.NULL;
-import static org.knime.filehandling.core.data.location.internal.FSLocationSerializationUtils.CFG_FS_SPECIFIER;
-import static org.knime.filehandling.core.data.location.internal.FSLocationSerializationUtils.CFG_FS_CATEGORY;
-import static org.knime.filehandling.core.data.location.internal.FSLocationSerializationUtils.CFG_LOCATION_PRESENT;
-import static org.knime.filehandling.core.data.location.internal.FSLocationSerializationUtils.CFG_PATH;
+import static org.knime.filehandling.core.data.location.FSLocationSerializationUtils.CFG_FS_CATEGORY;
+import static org.knime.filehandling.core.data.location.FSLocationSerializationUtils.CFG_FS_SPECIFIER;
+import static org.knime.filehandling.core.data.location.FSLocationSerializationUtils.CFG_LOCATION_PRESENT;
+import static org.knime.filehandling.core.data.location.FSLocationSerializationUtils.CFG_PATH;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -68,6 +68,7 @@ import org.knime.core.node.config.ConfigWO;
 import org.knime.filehandling.core.connections.FSCategory;
 import org.knime.filehandling.core.connections.FSLocation;
 import org.knime.filehandling.core.connections.RelativeTo;
+import org.knime.filehandling.core.data.location.FSLocationSerializationUtils;
 
 /**
  * Unit tests for {@link FSLocationSerializationUtils}.

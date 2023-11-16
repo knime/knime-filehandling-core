@@ -46,7 +46,7 @@
  * History
  *   Mar 18, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
  */
-package org.knime.filehandling.core.data.location.internal;
+package org.knime.filehandling.core.data.location;
 
 import java.util.Optional;
 
