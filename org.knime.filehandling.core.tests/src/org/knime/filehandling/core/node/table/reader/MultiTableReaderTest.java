@@ -64,7 +64,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.knime.core.data.DataTableSpec;
-import org.knime.core.node.BufferedDataContainer;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.streamable.RowOutput;
 import org.knime.filehandling.core.node.table.reader.config.MultiTableReadConfig;
@@ -129,7 +128,6 @@ public class MultiTableReaderTest {
                 .thenReturn(m_stagedMultiTableRead);
         }
         when(m_stagedMultiTableRead.withoutTransformation(m_sourceGroup)).thenReturn(m_multiTableRead);
-        when(m_multiTableRead.getOutputSpec()).thenReturn(m_knimeSpec);
         when(m_multiTableRead.getTableSpecConfig()).thenReturn(m_tableSpecConfig);
         when(m_tableSpecConfig.getDataTableSpec()).thenReturn(m_knimeSpec);
     }
@@ -257,8 +255,6 @@ public class MultiTableReaderTest {
         stubMultiReads(false);
         ExecutionContext subExec = mock(ExecutionContext.class);
         when(m_exec.createSubExecutionContext(anyDouble())).thenReturn(subExec);
-        BufferedDataContainer container = mock(BufferedDataContainer.class);
-        when(m_exec.createDataContainer(m_knimeSpec)).thenReturn(container);
         // we can't check for equality because the mock BufferedDataContainer returns null
         // for getTable(). This call can't be mocked because BufferedDataTable is final
         m_testInstance.readTable(m_sourceGroup, m_multiReadConfig, m_exec);
@@ -278,8 +274,6 @@ public class MultiTableReaderTest {
         stubMultiReads(true);
         ExecutionContext subExec = mock(ExecutionContext.class);
         when(m_exec.createSubExecutionContext(anyDouble())).thenReturn(subExec);
-        BufferedDataContainer container = mock(BufferedDataContainer.class);
-        when(m_exec.createDataContainer(m_knimeSpec)).thenReturn(container);
         // we can't check for equality because the mock BufferedDataContainer returns null
         // for getTable(). This call can't be mocked because BufferedDataTable is final
         m_testInstance.readTable(m_sourceGroup, m_multiReadConfig, m_exec);
