@@ -1,6 +1,7 @@
 autoEnabled=true
 bindingSuggestionsDisabled=false
 eclipse.preferences.version=1
-idePrefixKey=src/org/knime/filehandling/core/example
+idePrefixKey=
 projectKey=KNIME_knime-filehandling-core
 serverId=SonarCloud
+sqPrefixKey=org.knime.filehandling.core.example
