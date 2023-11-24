@@ -194,15 +194,18 @@ public class IDWithSecretAuthProviderPanel extends AuthProviderPanel<IDWithSecre
         }
 
         m_ignoreEvents = true;
-        m_idLabel.setEnabled(isEnabled() && !getSettings().useCredentials());
-        m_secretLabel.setEnabled(isEnabled() && !getSettings().useCredentials());
 
-        if (m_credentialsSupplier.get().listNames().isEmpty()) {
-            getSettings().getUseCredentialsModel().setBooleanValue(false);
-            m_useCredentials.setEnabled(false);
-        } else {
-            m_useCredentials.setEnabled(isEnabled());
-        }
+        final var useCredentials = getSettings().useCredentials();
+
+        m_idLabel.setEnabled(isEnabled() && !useCredentials);
+        m_secretLabel.setEnabled(isEnabled() && !useCredentials);
+
+        final var hasCredentials = !m_credentialsSupplier.get().listNames().isEmpty();
+        // if there are no credentials available we need to give the user the possibility to uncheck
+        // m_useCredentials
+        m_useCredentials.setEnabled(isEnabled() && (hasCredentials || useCredentials));
+        m_credentialSelection.setEnabled(isEnabled() && hasCredentials );
+
         m_ignoreEvents = false;
     }
 
