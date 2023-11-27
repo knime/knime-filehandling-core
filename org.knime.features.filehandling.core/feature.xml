@@ -728,14 +728,6 @@
    </license>
 
    <plugin
-         id="org.knime.filehandling.core.fs.tests.workflow"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         fragment="true"
-         unpack="false"/>
-
-   <plugin
          id="org.knime.filehandling.core"
          download-size="0"
          install-size="0"
