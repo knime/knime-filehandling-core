@@ -203,11 +203,34 @@ public final class DefaultMultiTableReadFactory<I, C extends ReaderSpecificConfi
 
     @Override
     public StagedMultiTableRead<I, T> createFromConfig(final SourceGroup<I> sourceGroup,
-        final MultiTableReadConfig<C, T> config) {
+        final MultiTableReadConfig<C, T> config, final ExecutionMonitor exec) throws IOException {
         final TableSpecConfig<T> tableSpecConfig = config.getTableSpecConfig();
         final Map<I, TypedReaderTableSpec<T>> individualSpecs = getIndividualSpecs(sourceGroup, tableSpecConfig);
+
+        validateIndividualSpecs(individualSpecs, sourceGroup, config, exec);
+
         final DataColumnSpec itemIdColumn = tableSpecConfig.getItemIdentifierColumn().orElse(null);
         return createStagedMultiTableRead(tableSpecConfig.getRawSpec(), individualSpecs, config, itemIdColumn);
+    }
+
+    private void validateIndividualSpecs(final Map<I, TypedReaderTableSpec<T>> individualSpecs,
+        final SourceGroup<I> sourceGroup, final MultiTableReadConfig<C, T> config, final ExecutionMonitor exec)
+        throws IOException {
+        if (exec == null) {
+            return;
+        }
+        double progressPerSource = 1.0 / sourceGroup.size();
+        for (I source : sourceGroup) {
+            try {
+                m_reader.checkSpecs(individualSpecs.get(source), source, config.getTableReadConfig(),
+                    exec.createSubProgress(progressPerSource));
+            } catch (IllegalStateException e) {
+                var message = String.format("Table schema has changed in %s:\n%s\n"
+                    + "Please reconfigure the node or consider enabling the 'Support changing file schemas' option.",
+                    source, e.getMessage());
+                throw new IllegalStateException(message, e);
+            }
+        }
     }
 
     private Map<I, TypedReaderTableSpec<T>> getIndividualSpecs(final SourceGroup<I> sourceGroup,

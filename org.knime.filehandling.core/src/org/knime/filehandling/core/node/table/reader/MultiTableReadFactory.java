@@ -49,6 +49,7 @@
 package org.knime.filehandling.core.node.table.reader;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 
 import org.knime.core.node.ExecutionMonitor;
@@ -94,10 +95,34 @@ public interface MultiTableReadFactory<I, C extends ReaderSpecificConfig<C>, T> 
      * configured for {@link SourceGroup sourceGroup}! The specs aren't recalculated and the configured
      * {@link TableTransformation} is used by default.
      *
+     * When provided with {@link ExecutionMonitor} the method should perform the sanity check to ensure that the specs
+     * stored in the config are indeed correspond to the given {@link SourceGroup} (i.e. the table structure hasn't been
+     * changed after the configure).
+     *
+     * @param sourceGroup the {@link SourceGroup} to read from
+     * @param config user provided {@link MultiTableReadConfig}
+     * @param exec used to monitor the spec validation
+     * @return a {@link MultiTableRead} for reading the tables from the given items
+     * @throws IOException
+     */
+    StagedMultiTableRead<I, T> createFromConfig(SourceGroup<I> sourceGroup, MultiTableReadConfig<C, T> config,
+        final ExecutionMonitor exec) throws IOException;
+
+    /**
+     * The createFromConfig variant that doesn't perform the sanity check on the specs and hence does not perform
+     * any I/O.
+     *
      * @param sourceGroup the {@link SourceGroup} to read from
      * @param config user provided {@link MultiTableReadConfig}
      * @return a {@link MultiTableRead} for reading the tables from the given items
      */
-    StagedMultiTableRead<I, T> createFromConfig(SourceGroup<I> sourceGroup, MultiTableReadConfig<C, T> config);
-
+    default StagedMultiTableRead<I, T> createFromConfig(final SourceGroup<I> sourceGroup,
+        final MultiTableReadConfig<C, T> config) {
+        try {
+            return createFromConfig(sourceGroup, config, null);
+        } catch (IOException ex) {
+            // Should not happen, since createFromConfig should not perform any I/O when no ExecutionMonitor is provided
+            throw new UncheckedIOException(ex);
+        }
+    }
 }

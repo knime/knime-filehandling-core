@@ -124,7 +124,7 @@ public final class MultiTableReader<I, C extends ReaderSpecificConfig<C>, T> {
     private StagedMultiTableRead<I, T> createMultiRead(final SourceGroup<I> sourceGroup,
         final MultiTableReadConfig<C, T> config, final ExecutionMonitor exec) throws IOException {
         if (isConfiguredWith(config, sourceGroup)) {
-            m_currentMultiRead = m_multiTableReadFactory.createFromConfig(sourceGroup, config);
+            m_currentMultiRead = m_multiTableReadFactory.createFromConfig(sourceGroup, config, exec);
         } else {
             m_currentMultiRead = m_multiTableReadFactory.create(sourceGroup, config, exec);
         }

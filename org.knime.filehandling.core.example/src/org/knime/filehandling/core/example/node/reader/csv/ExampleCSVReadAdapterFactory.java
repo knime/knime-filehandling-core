@@ -61,6 +61,10 @@ public enum ExampleCSVReadAdapterFactory implements ReadAdapterFactory<DataType,
         .addType(StringCell.TYPE, createTypeTester(DoubleCell.TYPE, ExampleCSVReadAdapterFactory::canBeParsedAsDouble))
         .build();
 
+    static final TreeTypeHierarchy<DataType, String> STRING_ONLY_HIERARCHY = TreeTypeHierarchy//
+            .builder(TypeTester.createTypeTester(StringCell.TYPE, createTypeTester(StringCell.TYPE, s -> true)))//
+            .build();
+
     /**
      * Used by the Table Reader Framework to resolve type conflicts if there exists a column in multiple files that has
      * the same name but different types.<br>
