@@ -77,6 +77,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.util.CheckUtils;
+import org.knime.filehandling.core.connections.base.BaseFileSystemProvider;
 import org.knime.filehandling.core.connections.workflowaware.WorkflowAware;
 import org.knime.filehandling.core.connections.workflowaware.WorkflowAwareUtil;
 import org.knime.filehandling.core.defaultnodesettings.ExceptionUtil;
@@ -637,5 +638,51 @@ public final class FSFiles {
         try (var tempPathCloseable = sourceProvider.toLocalWorkflowDir(source)) {
             targetProvider.deployWorkflow(tempPathCloseable.getTempFileOrFolder(), target, true, false);
         }
+    }
+
+    /**
+     * Similar to {@link Files#move(Path, Path, CopyOption...)} with one addition. When the atomic move is requested and
+     * the source and the target associated with the different file systems the method makes an attempt to convert the
+     * target path to the source file system.
+     *
+     * @param source The path to the file to move.
+     * @param target The path to the target file (may be associated with a different provider to the source path).
+     * @param options Options specifying how the move should be done.
+     * @throws IOException
+     */
+    @SuppressWarnings("resource")
+    public static void move(final FSPath source, FSPath target, final CopyOption... options) throws IOException {
+        if (Set.of(options).contains(StandardCopyOption.ATOMIC_MOVE)
+            && source.getFileSystem() != target.getFileSystem()) {
+
+            FSPath convertedTarget =
+                ((BaseFileSystemProvider<?, ?>)source.getFileSystem().provider()).convertPathToCurrentFS(target);
+            if (convertedTarget != null) {
+                target = convertedTarget;
+            }
+        }
+
+        Files.move(source, target, options);
+    }
+
+    /**
+     * Performs atomic copy of the directory represented by the sourceDir path into the targetDir. Makes an attempt to
+     * convert targetDir path to the sourceDir file system if the path belongs to a different file system.
+     *
+     * @param sourceDir The source directory path;
+     * @param targetDir The target directory path;
+     * @throws IOException
+     */
+    @SuppressWarnings("resource")
+    public static void copyAtomically(final FSPath sourceDir, FSPath targetDir) throws IOException {
+        var provider = (BaseFileSystemProvider<?, ?>)sourceDir.getFileSystem().provider();
+        if (sourceDir.getFileSystem() != targetDir.getFileSystem()) {
+            targetDir = provider.convertPathToCurrentFS(targetDir);
+            if (targetDir == null) {
+                throw new UnsupportedOperationException("Atomic copy between differetn file systems is not supported");
+            }
+        }
+
+        provider.copyDirectoryAtomically(sourceDir, targetDir);
     }
 }

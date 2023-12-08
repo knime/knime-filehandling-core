@@ -112,6 +112,8 @@ public abstract class AbstractParameterizedFSTest {
 
     protected static final String KNIME_REST = "knime-rest";
 
+    protected static final String KNIME_HUB = "knime-hub";
+
     private static FSTestInitializer currentTestInitializer;
 
     @Rule

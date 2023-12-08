@@ -57,14 +57,18 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
+import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Assume;
 import org.junit.Test;
+import org.knime.filehandling.core.connections.FSFiles;
+import org.knime.filehandling.core.connections.FSPath;
 import org.knime.filehandling.core.fs.tests.integration.AbstractParameterizedFSTest;
 import org.knime.filehandling.core.testing.FSTestInitializer;
 import org.knime.filehandling.core.util.IOESupplier;
@@ -254,5 +258,68 @@ public class CopyTest extends AbstractParameterizedFSTest {
 
         assertTrue(beforeTgtAttributes.creationTime().toMillis() <= afterTgtAttributes.creationTime().toMillis());
         assertTrue(beforeTgtAttributes.lastModifiedTime().toMillis() <= afterTgtAttributes.lastModifiedTime().toMillis());
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void test_copy_atomically_throws_exception_when_not_implemented() throws IOException {
+        ignoreWithReason("Atomic copy is implemented", KNIME_REST);
+        ignoreWithReason("Atomic copy is implemented", KNIME_HUB);
+
+        Assume.assumeTrue(m_connection.getFSDescriptor().getCapabilities().canWriteFiles());
+
+        final FSPath source = m_testInitializer.makePath("source");
+        m_testInitializer.createFile("source", "file");
+        final FSPath target = m_testInitializer.makePath("target");
+
+        FSFiles.copyAtomically(source, target);
+    }
+
+    @Test(expected = NotDirectoryException.class)
+    public void test_copy_file_atomically() throws IOException {
+        ignoreAllExcept(KNIME_REST, KNIME_HUB);
+
+        Assume.assumeTrue(m_connection.getFSDescriptor().getCapabilities().canWriteFiles());
+
+        var source = m_testInitializer.createFileWithContent("content", "file");
+        var target = m_testInitializer.makePath("file2");
+
+        FSFiles.copyAtomically(source, target);
+    }
+
+    @Test
+    public void test_copy_dir_atomically() throws IOException {
+        ignoreAllExcept(KNIME_REST, KNIME_HUB);
+
+        Assume.assumeTrue(m_connection.getFSDescriptor().getCapabilities().canCreateDirectories());
+        Assume.assumeTrue(m_connection.getFSDescriptor().getCapabilities().canWriteFiles());
+
+        final FSPath source = m_testInitializer.makePath("dir1");
+        final FSPath a = m_testInitializer.createFileWithContent("a", "dir1", "a");
+        final FSPath b = m_testInitializer.createFileWithContent("b", "dir1", "b");
+        final FSPath c = m_testInitializer.createFileWithContent("c", "dir1", "dir11", "c");
+        final FSPath d = m_testInitializer.createFileWithContent("d", "dir1", "dir12", "d");
+        final FSPath emptyDir = m_testInitializer.makePath("dir1", "empty_dir");
+        Files.createDirectories(emptyDir);
+
+        final FSPath target = m_testInitializer.makePath("target");
+
+        FSFiles.copyAtomically(source, target);
+
+        final FSPath targetA = m_testInitializer.makePath("target", "a");
+        final FSPath targetB = m_testInitializer.makePath("target", "b");
+        final FSPath targetC = m_testInitializer.makePath("target", "dir11", "c");
+        final FSPath targetD = m_testInitializer.makePath("target", "dir12", "d");
+        final FSPath targetEmptyDir = m_testInitializer.makePath("target", "empty_dir");
+
+        assertTrue(Files.isRegularFile(targetA));
+        assertTrue(Files.isRegularFile(targetB));
+        assertTrue(Files.isRegularFile(targetC));
+        assertTrue(Files.isRegularFile(targetD));
+        assertTrue(Files.isDirectory(targetEmptyDir));
+
+        assertEquals(Collections.singletonList("a"), Files.readAllLines(targetA));
+        assertEquals(Collections.singletonList("b"), Files.readAllLines(targetB));
+        assertEquals(Collections.singletonList("c"), Files.readAllLines(targetC));
+        assertEquals(Collections.singletonList("d"), Files.readAllLines(targetD));
     }
 }

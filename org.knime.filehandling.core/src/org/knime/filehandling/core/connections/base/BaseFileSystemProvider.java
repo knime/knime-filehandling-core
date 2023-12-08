@@ -56,6 +56,7 @@ import java.net.URI;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.AccessMode;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.ClosedFileSystemException;
 import java.nio.file.CopyOption;
 import java.nio.file.DirectoryNotEmptyException;
@@ -324,8 +325,8 @@ public abstract class BaseFileSystemProvider<P extends FSPath, F extends BaseFil
 
         checkFileSystemOpenAndNotClosing();
 
-        final P checkedSource = checkCastAndAbsolutizePath(source);
-        final P checkedTarget = checkCastAndAbsolutizePath(target);
+        final var checkedSource = checkCastAndAbsolutizePath(source);
+        final var checkedTarget = checkCastAndAbsolutizePath(target);
 
         if (checkedSource.equals(checkedTarget)) {
             return;
@@ -335,8 +336,9 @@ public abstract class BaseFileSystemProvider<P extends FSPath, F extends BaseFil
             throw new NoSuchFileException(source.toString());
         }
 
+        var optionSet = Set.of(options);
         if (existsCached(checkedTarget)) {
-            if (!Arrays.asList(options).contains(StandardCopyOption.REPLACE_EXISTING)) {
+            if (!optionSet.contains(StandardCopyOption.REPLACE_EXISTING)) {
                 throw new FileAlreadyExistsException(
                     String.format("Target file %s already exists.", target.toString()));
             } else if (isNonEmptyDirectory(checkedTarget)) {
@@ -346,10 +348,31 @@ public abstract class BaseFileSystemProvider<P extends FSPath, F extends BaseFil
             checkParentDirectoryExists(checkedTarget);
         }
 
-        moveInternal(checkedSource, checkedTarget, options);
+        if (optionSet.contains(StandardCopyOption.ATOMIC_MOVE)) {
+            moveInternalAtomically(checkedSource, checkedTarget, options);
+        } else {
+            moveInternal(checkedSource, checkedTarget, options);
+        }
+
         getFileSystemInternal().removeFromAttributeCacheDeep(checkedSource);
 
         deleteCachedParentDirectoryAttributes(checkedTarget);
+    }
+
+    /**
+     * Performs an atomic move operation. Subclasses should override this method when file system backend allows such
+     * operation. The default implementation just throws {@link AtomicMoveNotSupportedException}.
+     *
+     * @param source An absolute, normalized path that specifies the source file/directory to move.
+     * @param target An absolute, normalized path that specifies the target file/directory.
+     * @param options options specifying how the move should be done
+     * @throws AtomicMoveNotSupportedException If atomic move is not supported or not possible for a given paths.
+     * @throws IOException
+     */
+    protected void moveInternalAtomically(final P source, final P target, final CopyOption... options)
+        throws IOException {
+        throw new AtomicMoveNotSupportedException(source.toString(), target.toString(),
+            "Atomic move is not supported by the file system.");
     }
 
     /**
@@ -937,5 +960,60 @@ public abstract class BaseFileSystemProvider<P extends FSPath, F extends BaseFil
         if (path.getParent() != null) {
             getFileSystemInternal().removeFromAttributeCache(path.getParent());
         }
+    }
+
+    /**
+     * Converts the path from the foreign file system into the path in the current one.
+     *
+     * @param path The path to convert
+     * @return The converted path, or <code>null</code> if the conversion is not possible.
+     */
+    public P convertPathToCurrentFS(final Path path) {
+        return null;
+    }
+
+    /**
+     * Performs an atomic copy of the directory and all of it's contents. May throw
+     * {@link UnsupportedOperationException} if the file systems does not support atomic copy.
+     *
+     * @param source The source directory.
+     * @param target The target directory.
+     * @throws IOException
+     */
+    public void copyDirectoryAtomically(final Path source, final Path target) throws IOException {
+        checkFileSystemOpenAndNotClosing();
+
+        var checkedSource = checkCastAndAbsolutizePath(source);
+        var checkedTarget = checkCastAndAbsolutizePath(target);//NOSONAR
+
+        if (!existsCached(checkedSource)) {
+            throw new NoSuchFileException(source.toString());
+        }
+
+        if (!Files.isDirectory(checkedSource)) {
+            throw new NotDirectoryException(checkedSource.toString());
+        }
+
+        if (existsCached(checkedTarget) && !Files.isDirectory(checkedTarget)) {
+            throw new NotDirectoryException(checkedTarget.toString());
+        }
+
+        checkParentDirectoryExists(checkedTarget);
+
+        copyDirectoryAtomicallyInternal(checkedSource, checkedTarget);
+
+        deleteCachedParentDirectoryAttributes(checkedTarget);
+    }
+
+    /**
+     * Performs an atomic copy of the directory. The default implementation just throws
+     * {@link UnsupportedOperationException}.
+     *
+     * @param source The source directory.
+     * @param target The target directory.
+     * @throws IOException
+     */
+    protected void copyDirectoryAtomicallyInternal(final P source, final P target) throws IOException {
+        throw new UnsupportedOperationException("Atomic copy is not supported by the file system");
     }
 }

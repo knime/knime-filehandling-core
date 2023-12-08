@@ -49,9 +49,11 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileAlreadyExistsException;
@@ -61,6 +63,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Assume;
@@ -458,5 +461,134 @@ public class MoveTest extends AbstractParameterizedFSTest {
         assertFalse(Files.exists(dstParent));
 
         Files.move(dirToMove, dstParent.resolve(dirName));
+    }
+
+    @Test(expected = AtomicMoveNotSupportedException.class)
+    public void test_move_atomically_throws_exception_when_not_implemented() throws IOException {
+        ignoreWithReason("Atomic move is implemented", KNIME_REST);
+        ignoreWithReason("Atomic move is implemented", KNIME_HUB);
+
+        Assume.assumeTrue(m_connection.getFSDescriptor().getCapabilities().canWriteFiles());
+
+        final Path source = m_testInitializer.createFile("file");
+        final Path target = m_testInitializer.makePath("file2");
+
+        Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
+    }
+
+    @Test
+    public void test_move_file_atomically() throws IOException {
+        ignoreAllExcept(KNIME_REST, KNIME_HUB);
+
+        Assume.assumeTrue(m_connection.getFSDescriptor().getCapabilities().canWriteFiles());
+
+        var source = m_testInitializer.createFileWithContent(TEST_CONTENT, "file");
+        var target = m_testInitializer.makePath("file2");
+
+        Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
+
+        assertFalse(Files.exists(source));
+        assertTrue(Files.isRegularFile(target));
+        assertArrayEquals(TEST_CONTENT.getBytes(StandardCharsets.UTF_8), Files.readAllBytes(target));
+    }
+
+    @Test
+    public void test_move_dir_atomically() throws IOException {
+        ignoreAllExcept(KNIME_REST, KNIME_HUB);
+
+        Assume.assumeTrue(m_connection.getFSDescriptor().getCapabilities().canCreateDirectories());
+        Assume.assumeTrue(m_connection.getFSDescriptor().getCapabilities().canWriteFiles());
+
+        final Path source = m_testInitializer.makePath("dir1");
+        final Path a = m_testInitializer.createFileWithContent("a", "dir1", "a");
+        final Path b = m_testInitializer.createFileWithContent("b", "dir1", "b");
+        final Path c = m_testInitializer.createFileWithContent("c", "dir1", "dir11", "c");
+        final Path d = m_testInitializer.createFileWithContent("d", "dir1", "dir12", "d");
+        final Path emptyDir = m_testInitializer.makePath("dir1", "empty_dir");
+        Files.createDirectories(emptyDir);
+
+        final Path target = m_testInitializer.makePath("target");
+
+        Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
+
+        assertFalse(Files.exists(source));
+
+        final Path targetA = m_testInitializer.makePath("target", "a");
+        final Path targetB = m_testInitializer.makePath("target", "b");
+        final Path targetC = m_testInitializer.makePath("target", "dir11", "c");
+        final Path targetD = m_testInitializer.makePath("target", "dir12", "d");
+        final Path targetEmptyDir = m_testInitializer.makePath("target", "empty_dir");
+
+        assertTrue(Files.isRegularFile(targetA));
+        assertTrue(Files.isRegularFile(targetB));
+        assertTrue(Files.isRegularFile(targetC));
+        assertTrue(Files.isRegularFile(targetD));
+        assertTrue(Files.isDirectory(targetEmptyDir));
+
+        assertEquals(Collections.singletonList("a"), Files.readAllLines(targetA));
+        assertEquals(Collections.singletonList("b"), Files.readAllLines(targetB));
+        assertEquals(Collections.singletonList("c"), Files.readAllLines(targetC));
+        assertEquals(Collections.singletonList("d"), Files.readAllLines(targetD));
+    }
+
+    @Test
+    public void test_move_file_atomically_target_already_exists() throws IOException {
+        ignoreAllExcept(KNIME_REST, KNIME_HUB);
+
+        Assume.assumeTrue(m_connection.getFSDescriptor().getCapabilities().canWriteFiles());
+
+        Path source = m_testInitializer.createFileWithContent("source", "source");
+        Path target = m_testInitializer.createFileWithContent("target", "target");
+
+        try {
+            Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
+            fail("FileAlreadyExistsException was not thrown");
+        } catch (FileAlreadyExistsException e) { // NOSONAR
+        }
+
+        assertTrue(Files.isRegularFile(source));
+        assertTrue(Files.isRegularFile(target));
+        assertEquals(Collections.singletonList("source"), Files.readAllLines(source));
+        assertEquals(Collections.singletonList("target"), Files.readAllLines(target));
+
+        Files.move(source, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+
+        assertFalse(Files.exists(source));
+        assertTrue(Files.isRegularFile(target));
+        assertEquals(Collections.singletonList("source"), Files.readAllLines(target));
+    }
+
+    @Test
+    public void test_move_dir_atomically_target_already_exists() throws IOException {
+        ignoreAllExcept(KNIME_REST, KNIME_HUB);
+
+        Assume.assumeTrue(m_connection.getFSDescriptor().getCapabilities().canCreateDirectories());
+        Assume.assumeTrue(m_connection.getFSDescriptor().getCapabilities().canWriteFiles());
+
+        Path source = m_testInitializer.makePath("source");
+        Path sourceA = m_testInitializer.createFileWithContent("a", "source", "a");
+        Path emptyTarget = m_testInitializer.makePath("target");
+        Path targetA = m_testInitializer.makePath("target", "a");
+        Path nonEmptyTarget = m_testInitializer.makePath("non-empty");
+
+        m_testInitializer.createFile("non-empty", "file");
+        Files.createDirectories(emptyTarget);
+
+        try {
+            Files.move(source, nonEmptyTarget, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            fail("DirectoryNotEmptyException was not thrown");
+        } catch (DirectoryNotEmptyException e) { // NOSONAR
+        }
+
+        assertTrue(Files.isDirectory(source));
+        assertTrue(Files.isRegularFile(sourceA));
+
+        Files.move(source, emptyTarget, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+
+        assertFalse(Files.exists(source));
+        assertFalse(Files.exists(sourceA));
+        assertTrue(Files.isDirectory(emptyTarget));
+        assertTrue(Files.isRegularFile(targetA));
+        assertEquals(Collections.singletonList("a"), Files.readAllLines(targetA));
     }
 }
