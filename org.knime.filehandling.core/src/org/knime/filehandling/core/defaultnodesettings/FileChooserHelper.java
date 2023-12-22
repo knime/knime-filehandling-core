@@ -60,13 +60,13 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.knime.core.node.InvalidSettingsException;
-import org.knime.core.util.FileUtil;
 import org.knime.core.util.Pair;
 import org.knime.filehandling.core.connections.FSCategory;
 import org.knime.filehandling.core.connections.FSConnection;
 import org.knime.filehandling.core.connections.FSFileSystem;
 import org.knime.filehandling.core.connections.FSLocation;
 import org.knime.filehandling.core.connections.FSPath;
+import org.knime.filehandling.core.connections.config.URIFSConnectionConfig;
 import org.knime.filehandling.core.defaultnodesettings.FileSystemChoice.Choice;
 import org.knime.filehandling.core.filefilter.FileFilter;
 
@@ -97,7 +97,7 @@ public final class FileChooserHelper {
 
     /**
      * Creates a new instance of {@link FileChooserHelper} that uses the default url timeout
-     * {@link FileUtil#getDefaultURLTimeoutMillis()} for custom URLs.
+     * {@link URIFSConnectionConfig#DEFAULT_TIMEOUT_MILLIS} for custom URLs.
      *
      * @param portObjectFSConnection the {@link FSConnection} used to retrieve a file system if necessary.
      * @param settings the settings object containing necessary information about e.g. file filtering
@@ -105,7 +105,7 @@ public final class FileChooserHelper {
      */
     public FileChooserHelper(final Optional<FSConnection> portObjectFSConnection,
         final SettingsModelFileChooser2 settings) throws IOException {
-        this(portObjectFSConnection, settings, FileUtil.getDefaultURLTimeoutMillis());
+        this(portObjectFSConnection, settings, URIFSConnectionConfig.DEFAULT_TIMEOUT_MILLIS);
     }
 
     /**

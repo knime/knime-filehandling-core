@@ -57,6 +57,7 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
 import org.knime.filehandling.core.connections.FSCategory;
+import org.knime.filehandling.core.connections.config.URIFSConnectionConfig;
 import org.knime.filehandling.core.defaultnodesettings.filesystemchooser.config.CustomURLSpecificConfig;
 
 /**
@@ -67,7 +68,8 @@ import org.knime.filehandling.core.defaultnodesettings.filesystemchooser.config.
  */
 public final class CustomURLFileSystemDialog implements FileSystemSpecificDialog {
 
-    private final JSpinner m_timeoutSpinner = new JSpinner(new SpinnerNumberModel(1000, 0, Integer.MAX_VALUE, 1000));
+    private final JSpinner m_timeoutSpinner =
+        new JSpinner(new SpinnerNumberModel(URIFSConnectionConfig.DEFAULT_TIMEOUT_MILLIS, 0, Integer.MAX_VALUE, 1000));
 
     private final JPanel m_timeoutPanel = new JPanel();
 

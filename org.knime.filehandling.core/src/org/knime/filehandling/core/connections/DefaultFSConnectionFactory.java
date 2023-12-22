@@ -56,7 +56,6 @@ import java.time.Duration;
 import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.contextv2.HubSpaceLocationInfo;
-import org.knime.core.util.FileUtil;
 import org.knime.core.util.auth.Authenticator;
 import org.knime.filehandling.core.connections.config.HubFSConnectionConfig;
 import org.knime.filehandling.core.connections.config.HubSpaceFSConnectionConfig;
@@ -121,7 +120,7 @@ public final class DefaultFSConnectionFactory {
     }
 
     public static FSConnection createCustomURLConnection(final String url) {
-        return createCustomURLConnection(url, FileUtil.getDefaultURLTimeoutMillis());
+        return createCustomURLConnection(url, URIFSConnectionConfig.DEFAULT_TIMEOUT_MILLIS);
     }
 
     public static FSConnection createCustomURLConnection(final String url, final int timeoutInMillis) {
