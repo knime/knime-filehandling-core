@@ -51,7 +51,6 @@ package org.knime.filehandling.core.connections.config;
 import java.net.URI;
 import java.time.Duration;
 
-import org.knime.core.util.FileUtil;
 import org.knime.filehandling.core.connections.DefaultFSConnectionFactory;
 import org.knime.filehandling.core.connections.meta.FSConnectionConfig;
 import org.knime.filehandling.core.connections.meta.base.BaseFSConnectionConfig;
@@ -66,9 +65,14 @@ import org.knime.filehandling.core.connections.meta.base.BaseFSConnectionConfig;
  */
 public class URIFSConnectionConfig extends BaseFSConnectionConfig {
 
+    /**
+     * Default connect/read timeout for URI filesystem in ms.
+     */
+    public static final int DEFAULT_TIMEOUT_MILLIS = 10000; //10s
+
     private URI m_uri;
 
-    private Duration m_timeout = Duration.ofMillis(FileUtil.getDefaultURLTimeoutMillis());
+    private Duration m_timeout = Duration.ofMillis(DEFAULT_TIMEOUT_MILLIS);
 
     /**
      * Constructor.

@@ -84,6 +84,7 @@ import org.knime.core.node.workflow.contextv2.WorkflowContextV2;
 import org.knime.core.node.workflow.contextv2.WorkflowContextV2.ExecutorType;
 import org.knime.core.util.FileUtil;
 import org.knime.filehandling.core.connections.FSConnection;
+import org.knime.filehandling.core.connections.config.URIFSConnectionConfig;
 import org.knime.filehandling.core.defaultnodesettings.FileSystemChoice.Choice;
 import org.knime.filehandling.core.defaultnodesettings.SettingsModelFileChooser2.FileOrFolderEnum;
 import org.knime.filehandling.core.filefilter.FileFilterDialog;
@@ -199,7 +200,7 @@ public class DialogComponentFileChooser2 extends DialogComponent {
     private final int m_inPort;
 
     /** Timeout in milliseconds */
-    private int m_timeoutInMillis = FileUtil.getDefaultURLTimeoutMillis();
+    private int m_timeoutInMillis = URIFSConnectionConfig.DEFAULT_TIMEOUT_MILLIS;
 
     private final JPanel m_buttonGroupPanel;
 
