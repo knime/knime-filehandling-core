@@ -77,7 +77,7 @@ final class SimplePortObjectReaderNodeModel extends PortObjectFromFileReaderNode
 
     @Override
     protected PortObject[] read(final InputStream inputStream, final ExecutionContext exec) throws Exception {
-        PortObject portObject = PortUtil.readObjectFromStream(inputStream, exec);
+        PortObject portObject = PortUtil.readObjectFromStreamViaContext(inputStream, exec);
         // save since we only have a single output port, i.e., the port object we read
         final PortType modelPortType = getPortsConfig().getOutputPorts()[0];
         CheckUtils.checkArgument(modelPortType.getPortObjectClass().isInstance(portObject),
