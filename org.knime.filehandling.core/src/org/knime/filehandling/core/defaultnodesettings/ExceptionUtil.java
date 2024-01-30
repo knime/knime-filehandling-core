@@ -214,8 +214,8 @@ public class ExceptionUtil {
      * @return the wrapped {@link IOException}
      */
     public static IOException wrapIOException(final IOException e) {
-        if (e instanceof AccessDeniedException) {
-            return new FormattedAccessDeniedException((AccessDeniedException)e);
+        if (e instanceof AccessDeniedException ade) {
+            return new FormattedAccessDeniedException(ade);
         }
         return e;
     }
@@ -287,9 +287,16 @@ public class ExceptionUtil {
 
         private static final long serialVersionUID = 1L;
 
+        private final String m_msgSuffix;
+
         FormattedAccessDeniedException(final AccessDeniedException e) {
             super(e.getFile(), e.getOtherFile(), MSG_PREFIX);
             initCause(e.getCause());
+            if (StringUtils.isNotBlank(e.getReason())) {
+                m_msgSuffix = " (%s)".formatted(e.getReason());
+            } else {
+                m_msgSuffix = "";
+            }
         }
 
         /**
@@ -297,11 +304,12 @@ public class ExceptionUtil {
          */
         public FormattedAccessDeniedException(final Path path) {
             super(path.toString(), null, MSG_PREFIX);
+            m_msgSuffix = "";
         }
 
         @Override
         public String getMessage() {
-            return getReason() + " " + getFile();
+            return getReason() + " " + getFile() + m_msgSuffix;
         }
     }
 
