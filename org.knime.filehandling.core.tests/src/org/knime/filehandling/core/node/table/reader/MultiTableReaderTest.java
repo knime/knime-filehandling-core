@@ -121,7 +121,7 @@ public class MultiTableReaderTest {
     private void stubMultiReads(final boolean isConfigured) throws IOException {
         when(m_multiReadConfig.isConfiguredWith(any())).thenReturn(isConfigured);
         if (isConfigured) {
-            when(m_multiTableReadFactory.createFromConfig(m_sourceGroup, m_multiReadConfig))
+            when(m_multiTableReadFactory.createFromConfig(eq(m_sourceGroup), eq(m_multiReadConfig), any()))
                 .thenReturn(m_stagedMultiTableRead);
         } else {
             when(m_multiTableReadFactory.create(eq(m_sourceGroup), eq(m_multiReadConfig), any()))
@@ -159,7 +159,7 @@ public class MultiTableReaderTest {
         when(m_multiReadConfig.isConfiguredWith(any())).thenReturn(true);
         assertEquals(m_knimeSpec,
             m_testInstance.createTableSpec(m_sourceGroup, m_multiReadConfig));
-        verify(m_multiTableReadFactory).createFromConfig(m_sourceGroup, m_multiReadConfig);
+        verify(m_multiTableReadFactory).createFromConfig(eq(m_sourceGroup), eq(m_multiReadConfig), any());
         verify(m_multiTableReadFactory, never()).create(any(), any(), any());
     }
 
@@ -218,12 +218,12 @@ public class MultiTableReaderTest {
     public void testFillRowOutputWithCallingCreateSpecFirstInvalidPathsConfigured() throws Exception {
         stubMultiReads(true);
         m_testInstance.createTableSpec(m_sourceGroup, m_multiReadConfig);
-        verify(m_multiTableReadFactory).createFromConfig(m_sourceGroup, m_multiReadConfig);
+        verify(m_multiTableReadFactory).createFromConfig(eq(m_sourceGroup), eq(m_multiReadConfig), any());
         when(m_stagedMultiTableRead.isValidFor(m_sourceGroup)).thenReturn(false);
-        when(m_multiTableReadFactory.createFromConfig(m_sourceGroup, m_multiReadConfig))
+        when(m_multiTableReadFactory.createFromConfig(eq(m_sourceGroup), eq(m_multiReadConfig), any()))
             .thenReturn(m_stagedMultiTableRead);
         m_testInstance.fillRowOutput(m_sourceGroup, m_multiReadConfig, m_rowOutput, m_exec);
-        verify(m_multiTableReadFactory, times(2)).createFromConfig(m_sourceGroup, m_multiReadConfig);
+        verify(m_multiTableReadFactory, times(2)).createFromConfig(eq(m_sourceGroup), eq(m_multiReadConfig), any());
         verify(m_multiTableReadFactory, never()).create(any(), any(), any());
     }
 
@@ -280,7 +280,7 @@ public class MultiTableReaderTest {
         verify(m_multiReadConfig, times(2)).isConfiguredWith(any());
         verify(m_exec).createSubExecutionContext(0.0);
         verify(m_exec).createSubExecutionContext(1.0);
-        verify(m_multiTableReadFactory).createFromConfig(m_sourceGroup, m_multiReadConfig);
+        verify(m_multiTableReadFactory).createFromConfig(eq(m_sourceGroup), eq(m_multiReadConfig), any());
 
     }
 

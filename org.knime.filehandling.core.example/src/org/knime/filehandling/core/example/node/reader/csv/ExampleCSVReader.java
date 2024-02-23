@@ -60,6 +60,7 @@ import org.knime.filehandling.core.node.table.reader.read.Read;
 import org.knime.filehandling.core.node.table.reader.read.ReadUtils;
 import org.knime.filehandling.core.node.table.reader.spec.TableSpecGuesser;
 import org.knime.filehandling.core.node.table.reader.spec.TypedReaderTableSpec;
+import org.knime.filehandling.core.node.table.reader.util.MultiTableUtils;
 
 /**
  * Reader for the example CSV reader node.
@@ -82,6 +83,17 @@ final class ExampleCSVReader implements TableReader<ExampleCSVReaderConfig, Data
             var specGuesser =
                 new TableSpecGuesser<>(ExampleCSVReadAdapterFactory.VALUE_TYPE_HIERARCHY, Function.identity());
             return specGuesser.guessSpec(read, config, exec, path);
+        }
+    }
+
+    @Override
+    public void checkSpecs(final TypedReaderTableSpec<DataType> spec, final FSPath path,
+        final TableReadConfig<ExampleCSVReaderConfig> config, final ExecutionMonitor exec) throws IOException {
+        try (final var read = new ExampleCSVRead(path, config)) {
+            var specGuesser =
+                new TableSpecGuesser<>(ExampleCSVReadAdapterFactory.STRING_ONLY_HIERARCHY, Function.identity());
+            var columnNamesSpec = specGuesser.guessSpec(read, config, exec, path);
+            MultiTableUtils.checkEquals(spec, columnNamesSpec, true);
         }
     }
 

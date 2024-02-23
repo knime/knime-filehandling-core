@@ -89,6 +89,8 @@ public abstract class AbstractMultiTableReadConfig<C extends ReaderSpecificConfi
 
     private boolean m_saveTableSpecConfig = true;
 
+    private boolean m_checkSavedTableSpec = true;
+
     private boolean m_appendItemIdColumn = false;
 
     private String m_itemIdColumnName = "Path";
@@ -196,6 +198,11 @@ public abstract class AbstractMultiTableReadConfig<C extends ReaderSpecificConfi
         return m_saveTableSpecConfig;
     }
 
+    @Override
+    public boolean checkSavedTableSpec() {
+        return m_checkSavedTableSpec;
+    }
+
     /**
      * Allows to set whether the {@link TableSpecConfig} should be set by the dialog.
      *
@@ -203,6 +210,17 @@ public abstract class AbstractMultiTableReadConfig<C extends ReaderSpecificConfi
      */
     public void setSaveTableSpecConfig(final boolean saveTableSpecConfig) {
         m_saveTableSpecConfig = saveTableSpecConfig;
+    }
+
+    /**
+     * Allows to set whether the node model during execution should check the actual table spec (from the file(s))
+     * against the saved spec (only if saveTableSpecConfig() is true)
+     *
+     * @param checkSpec {@code true} if the saved {@link TableSpecConfig} should be checked against the actual spec
+     *            during node model execution.
+     */
+    public void setCheckSavedTableSpec(final boolean checkSpec) {
+        m_checkSavedTableSpec = checkSpec;
     }
 
     @Override

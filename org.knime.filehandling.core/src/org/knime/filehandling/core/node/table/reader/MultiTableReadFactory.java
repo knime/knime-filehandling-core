@@ -49,6 +49,7 @@
 package org.knime.filehandling.core.node.table.reader;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 
 import org.knime.core.node.ExecutionMonitor;
@@ -89,15 +90,41 @@ public interface MultiTableReadFactory<I, C extends ReaderSpecificConfig<C>, T> 
         ExecutionMonitor exec) throws IOException;
 
     /**
-     * Creates a {@link StagedMultiTableRead} for the given {@link SourceGroup} with the {@link TableSpecConfig} stored
+     * Creates a {@link StagedMultiTableRead} for the given {@link SourceGroup} using the {@link TableSpecConfig} stored
      * in the provided {@link MultiTableReadConfig}. This means that {@link MultiTableReadConfig config} MUST have been
      * configured for {@link SourceGroup sourceGroup}! The specs aren't recalculated and the configured
      * {@link TableTransformation} is used by default.
+     *
+     * <p>
+     * When provided with an {@link ExecutionMonitor} the method performs a sanity check to ensure that the table specs
+     * stored in the config still correspond to those of the items (e.g. files) in the given {@link SourceGroup}.
+     * </p>
+     *
+     * @param sourceGroup the {@link SourceGroup} to read from
+     * @param config user provided {@link MultiTableReadConfig}
+     * @param exec used to monitor the spec validation
+     * @return a {@link MultiTableRead} for reading the tables from the given items
+     * @throws IOException if something went wrong while checking the table spec.
+     */
+    StagedMultiTableRead<I, T> createFromConfig(SourceGroup<I> sourceGroup, MultiTableReadConfig<C, T> config,
+        final ExecutionMonitor exec) throws IOException;
+
+    /**
+     * Same as {@link #createFromConfig(SourceGroup, MultiTableReadConfig, ExecutionMonitor)} except that this method
+     * never checks the stored table spec against the one of the source group items (e.g. files).
      *
      * @param sourceGroup the {@link SourceGroup} to read from
      * @param config user provided {@link MultiTableReadConfig}
      * @return a {@link MultiTableRead} for reading the tables from the given items
      */
-    StagedMultiTableRead<I, T> createFromConfig(SourceGroup<I> sourceGroup, MultiTableReadConfig<C, T> config);
+    default StagedMultiTableRead<I, T> createFromConfig(final SourceGroup<I> sourceGroup,
+        final MultiTableReadConfig<C, T> config) {
 
+        try {
+            return createFromConfig(sourceGroup, config, null);
+        } catch (IOException ex) {
+            // Should not happen, since createFromConfig should not perform any I/O when no ExecutionMonitor is provided
+            throw new UncheckedIOException(ex);
+        }
+    }
 }

@@ -77,6 +77,8 @@ public class ImmutableMultiTableReadConfig<C extends ReaderSpecificConfig<C>, T>
 
     private final boolean m_saveTableSpecConfig;
 
+    private final boolean m_checkTableSpec;
+
     private final boolean m_appendItemIdColumn;
 
     private final String m_itemIdColumnName;
@@ -100,6 +102,7 @@ public class ImmutableMultiTableReadConfig<C extends ReaderSpecificConfig<C>, T>
         m_skipEmptyColumns = multiTableReadConfig.skipEmptyColumns();
         m_configID = multiTableReadConfig.getConfigID();
         m_saveTableSpecConfig = multiTableReadConfig.saveTableSpecConfig();
+        m_checkTableSpec = multiTableReadConfig.checkSavedTableSpec();
         m_appendItemIdColumn = multiTableReadConfig.appendItemIdentifierColumn();
         m_itemIdColumnName = multiTableReadConfig.getItemIdentifierColumnName();
     }
@@ -117,6 +120,11 @@ public class ImmutableMultiTableReadConfig<C extends ReaderSpecificConfig<C>, T>
     @Override
     public boolean saveTableSpecConfig() {
         return m_saveTableSpecConfig;
+    }
+
+    @Override
+    public boolean checkSavedTableSpec() {
+        return m_checkTableSpec;
     }
 
     @Override
@@ -162,5 +170,4 @@ public class ImmutableMultiTableReadConfig<C extends ReaderSpecificConfig<C>, T>
     public String getItemIdentifierColumnName() {
         return m_itemIdColumnName;
     }
-
 }
