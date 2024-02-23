@@ -112,6 +112,17 @@ public interface MultiTableReadConfig<C extends ReaderSpecificConfig<C>, T> {
     boolean saveTableSpecConfig();
 
     /**
+     * Indicates whether the node model during execution should check the actual table spec (of the file(s)) against the
+     * saved spec (only if {@link #saveTableSpecConfig()} is true). The extent of this check is node-dependent, since
+     * determining the full actual table spec can be expensive and some nodes may only do a shallow check, for example
+     * compare column names, but not types.
+     *
+     * @return {@code true} if the node model during execution should check the actual table spec (from the file(s))
+     *         against the saved spec
+     */
+    boolean checkSavedTableSpec();
+
+    /**
      * Returns the {@link DefaultTableSpecConfig}. This method should only be invoked if {@link #hasTableSpecConfig()}
      * returned {@code true}
      *

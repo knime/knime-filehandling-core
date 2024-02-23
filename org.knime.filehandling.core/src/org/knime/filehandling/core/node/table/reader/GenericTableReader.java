@@ -58,6 +58,7 @@ import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig
 import org.knime.filehandling.core.node.table.reader.config.TableReadConfig;
 import org.knime.filehandling.core.node.table.reader.read.Read;
 import org.knime.filehandling.core.node.table.reader.spec.TypedReaderTableSpec;
+import org.knime.filehandling.core.node.table.reader.util.MultiTableUtils;
 
 /**
  * A row-wise reader for data in table format.
@@ -118,6 +119,26 @@ public interface GenericTableReader<I, C extends ReaderSpecificConfig<C>, T, V> 
      * @throws IOException if reading fails due to IO problems
      */
     TypedReaderTableSpec<T> readSpec(I item, TableReadConfig<C> config, ExecutionMonitor exec) throws IOException;
+
+    /**
+     * Checks if the provided spec is compatible with the spec of the table stored at the input item. Throws
+     * {@link IllegalStateException} in case it isn't.
+     *
+     * The default implementation reads the spec from the input item and compares it to the provided spec. The reader
+     * implementations should override this method in cases when reading the full spec is undesirable (like in case of
+     * CSV reader), or less strict comparison is possible (like in case of Knime Table reader).
+     *
+     * @param spec The spec to check.
+     * @param item to read from
+     * @param config specifying the read settings
+     * @param exec the execution monitor
+     * @throws IOException
+     */
+    default void checkSpecs(final TypedReaderTableSpec<T> spec, final I item, final TableReadConfig<C> config,
+        final ExecutionMonitor exec) throws IOException {
+        var actualSpec = MultiTableUtils.assignNamesIfMissing(readSpec(item, config, exec));
+        MultiTableUtils.checkEquals(spec, actualSpec, false);
+    }
 
     /**
      * Creates the {@link DataColumnSpec} for the provided item with the provided name.

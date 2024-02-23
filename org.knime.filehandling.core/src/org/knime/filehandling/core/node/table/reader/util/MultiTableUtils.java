@@ -186,4 +186,46 @@ public final class MultiTableUtils {
             .collect(Collectors.toSet());
     }
 
+    /**
+     * Checks if the provided {@link TypedReaderTableSpec} objects are equals. Throws {@link IllegalStateException} with the
+     * detailed message in case they aren't.
+     *
+     * @param <T>
+     * @param expected The expected spec.
+     * @param actual The actual spec.
+     * @param ignoreTypes If <code>true</code> the column types will not be compared.
+     */
+    public static <T> void checkEquals(final TypedReaderTableSpec<T> expected, final TypedReaderTableSpec<T> actual,
+        final boolean ignoreTypes) {
+        if (expected.size() != actual.size()) {
+            throw new IllegalStateException(
+                String.format("Expected %d columns but got %d", expected.size(), actual.size()));
+        }
+
+        for (var i = 0; i < expected.size(); i++) {
+            var ec = expected.getColumnSpec(i);
+            var ac = actual.getColumnSpec(i);
+
+            String expectedName = ec.getName().orElse(null);
+            String actualName = ac.getName().orElse(null);
+            if (!Objects.equals(expectedName, actualName)) {
+                throw new IllegalStateException(
+                    String.format("Expected column '%s' but got '%s'", expectedName, actualName));
+            }
+
+            if (!ignoreTypes) {
+                if (ec.hasType() != ac.hasType()) {
+                    throw new IllegalStateException(
+                        String.format("'%s' column hasType property expected to be %b but got %b", expectedName,
+                            ec.hasType(), ac.hasType()));
+                }
+
+                if (ec.hasType() && !ec.getType().equals(ac.getType())) {
+                    throw new IllegalStateException(
+                        String.format("'%s' column expected to have the type '%s' but got '%s'", expectedName,
+                            ec.getType(), ac.getType()));
+                }
+            }
+        }
+    }
 }
