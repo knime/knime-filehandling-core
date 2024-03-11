@@ -99,7 +99,7 @@ public abstract class AbstractTableReadConfig<C extends ReaderSpecificConfig<C>>
     /**
      * Indicates if short rows are supported.
      */
-    protected boolean m_allowShortRows;
+    protected boolean m_allowShortRows = true;
 
     /**
      * Indicates if empty rows should be skipped.

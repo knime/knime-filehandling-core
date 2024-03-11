@@ -93,7 +93,7 @@ public abstract class AbstractMultiTableReadConfig<C extends ReaderSpecificConfi
 
     private boolean m_appendItemIdColumn = false;
 
-    private String m_itemIdColumnName = "Path";
+    private String m_itemIdColumnName = "File Path";
 
     /**
      * @deprecated Only used as fallback if no TableSpecConfig is available
