@@ -150,15 +150,14 @@ public class SingleSecretAuthProviderPanel extends AuthProviderPanel<SingleSecre
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     protected void updateComponentsEnablement() {
         m_secretLabel.setEnabled(isEnabled() && !getSettings().useCredentials());
 
         if (m_credentialsSupplier.get().listNames().isEmpty()) {
             getSettings().getUseCredentialsModel().setBooleanValue(false);
-            m_useCredentials.setEnabled(false);
+            m_useCredentials.getModel().setEnabled(false);
         } else {
-            m_useCredentials.setEnabled(isEnabled());
+            m_useCredentials.getModel().setEnabled(isEnabled());
         }
     }
 

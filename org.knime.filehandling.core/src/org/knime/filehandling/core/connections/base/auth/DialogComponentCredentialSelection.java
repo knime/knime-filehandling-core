@@ -199,7 +199,7 @@ public final class DialogComponentCredentialSelection extends DialogComponent {
 
     @Override
     protected void validateSettingsBeforeSave() throws InvalidSettingsException {
-        if (!m_selectionIsValid) {
+        if (getModel().isEnabled() && !m_selectionIsValid) {
             throw new InvalidSettingsException("No valid credential selected.");
         }
         updateModel();

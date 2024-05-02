@@ -93,7 +93,7 @@ public final class AuthSettings {
     public static class Builder {
         private final Map<AuthType, AuthProviderSettings> m_buildingProviderSettings = new HashMap<>();
 
-        private AuthType m_builderDefaultAuthType = null;
+        private AuthType m_builderDefaultAuthType;
 
         /**
          * Add a new auth type.
@@ -102,7 +102,7 @@ public final class AuthSettings {
          * @return this builder instance.
          */
         public Builder add(final AuthProviderSettings providerSettings) {
-            final AuthType authType = providerSettings.getAuthType();
+            final var authType = providerSettings.getAuthType();
             if (m_buildingProviderSettings.containsKey(authType)) {
                 throw new IllegalArgumentException("Already contains auth type " + authType.toString());
             }
@@ -173,7 +173,7 @@ public final class AuthSettings {
     }
 
     private void updateEnabledness() {
-        final AuthType currAuthType = getAuthType();
+        final var currAuthType = getAuthType();
 
         for (AuthProviderSettings provSettings : m_providerSettings.values()) {
             provSettings.setEnabled(provSettings.getAuthType().equals(currAuthType));
@@ -190,8 +190,8 @@ public final class AuthSettings {
      * @param credentialsProvider The current credentials provider.
      * @throws InvalidSettingsException if the specs are not compatible with the settings
      */
-    public void configureInModel(final PortObjectSpec[] specs, final Consumer<StatusMessage> statusMessageConsumer, final CredentialsProvider credentialsProvider)
-        throws InvalidSettingsException {
+    public void configureInModel(final PortObjectSpec[] specs, final Consumer<StatusMessage> statusMessageConsumer,
+        final CredentialsProvider credentialsProvider) throws InvalidSettingsException {
 
         m_providerSettings.get(getAuthType()).configureInModel(specs, statusMessageConsumer, credentialsProvider);
     }
@@ -211,8 +211,8 @@ public final class AuthSettings {
             load(authSettingsParent);
 
             for (AuthProviderSettings provSettings : m_providerSettings.values()) {
-                final AuthType curr = provSettings.getAuthType();
-                final NodeSettingsRO provSettingsRO = authSettingsParent.getNodeSettings(curr.getSettingsKey());
+                final var curr = provSettings.getAuthType();
+                final var provSettingsRO = authSettingsParent.getNodeSettings(curr.getSettingsKey());
 
                 final AuthProviderPanel<?> currPanel =  providerPanels.get(curr);
                 CheckUtils.checkArgument(provSettings == currPanel.getSettings(), "Panel is using different settings.");
@@ -288,12 +288,13 @@ public final class AuthSettings {
      * @param providerPanels
      * @throws InvalidSettingsException
      */
-    public void saveSettingsForDialog(final NodeSettingsWO authSettingsParent, final Map<AuthType, AuthProviderPanel<?>> providerPanels) throws InvalidSettingsException {
+    public void saveSettingsForDialog(final NodeSettingsWO authSettingsParent,
+        final Map<AuthType, AuthProviderPanel<?>> providerPanels) throws InvalidSettingsException {
         save(authSettingsParent);
 
         for (AuthProviderSettings provSettings : m_providerSettings.values()) {
-            final AuthType curr = provSettings.getAuthType();
-            final NodeSettingsWO providerSettingsWO = authSettingsParent.addNodeSettings(curr.getSettingsKey());
+            final var curr = provSettings.getAuthType();
+            final var providerSettingsWO = authSettingsParent.addNodeSettings(curr.getSettingsKey());
 
             final AuthProviderPanel<?> currPanel =  providerPanels.get(curr);
             CheckUtils.checkArgument(provSettings == currPanel.getSettings(), "Panel is using different settings.");

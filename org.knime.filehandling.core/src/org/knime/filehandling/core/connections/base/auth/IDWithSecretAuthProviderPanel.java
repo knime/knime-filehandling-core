@@ -187,7 +187,6 @@ public class IDWithSecretAuthProviderPanel extends AuthProviderPanel<IDWithSecre
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     protected void updateComponentsEnablement() {
         if (m_ignoreEvents) {
             return;
@@ -201,10 +200,10 @@ public class IDWithSecretAuthProviderPanel extends AuthProviderPanel<IDWithSecre
         m_secretLabel.setEnabled(isEnabled() && !useCredentials);
 
         final var hasCredentials = !m_credentialsSupplier.get().listNames().isEmpty();
-        // if there are no credentials available we need to give the user the possibility to uncheck
-        // m_useCredentials
-        m_useCredentials.setEnabled(isEnabled() && (hasCredentials || useCredentials));
-        m_credentialSelection.setEnabled(isEnabled() && hasCredentials );
+        // if there are no credentials available we need to give the user the possibility
+        // to uncheck m_useCredentials
+        m_useCredentials.getModel().setEnabled(isEnabled() && (hasCredentials || useCredentials));
+        m_credentialSelection.getModel().setEnabled(isEnabled() && useCredentials);
 
         m_ignoreEvents = false;
     }

@@ -130,6 +130,11 @@ public final class EmptyAuthProviderSettings implements AuthProviderSettings {
     }
 
     @Override
+    public void clear() {
+        // nothing to do
+    }
+
+    @Override
     public AuthProviderSettings createClone() {
         return new EmptyAuthProviderSettings(m_authType);
     }

@@ -333,10 +333,27 @@ public class IDWithSecretAuthProviderSettings implements AuthProviderSettings {
      * @param settings
      */
     private void save(final NodeSettingsWO settings) {
+        if (!isEnabled()) {
+            // don't save and persist credentials if they are not selected
+            // see ticket AP-21749
+            clear();
+        } else if (m_useCredentials.getBooleanValue()) {
+            m_id.setStringValue("");
+            m_secret.setStringValue("");
+        } else {
+            m_credentialsName.setStringValue("");
+        }
         m_useCredentials.saveSettingsTo(settings);
         m_credentialsName.saveSettingsTo(settings);
         m_id.saveSettingsTo(settings);
         m_secret.saveSettingsTo(settings);
+    }
+
+    @Override
+    public void clear() {
+        m_credentialsName.setStringValue("");
+        m_id.setStringValue("");
+        m_secret.setStringValue("");
     }
 
     @Override

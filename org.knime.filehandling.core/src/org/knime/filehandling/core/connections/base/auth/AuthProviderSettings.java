@@ -93,8 +93,8 @@ public interface AuthProviderSettings {
      * @param credentialsProvider The current credentials provider.
      * @throws InvalidSettingsException if the specs are not compatible with the settings
      */
-    void configureInModel(final PortObjectSpec[] specs, final Consumer<StatusMessage> statusMessageConsumer, final CredentialsProvider credentialsProvider)
-        throws InvalidSettingsException;
+    void configureInModel(final PortObjectSpec[] specs, final Consumer<StatusMessage> statusMessageConsumer,
+        final CredentialsProvider credentialsProvider) throws InvalidSettingsException;
 
     /**
      * Loads settings from the given {@link NodeSettingsRO} (to be called by the dialog).
@@ -141,6 +141,14 @@ public interface AuthProviderSettings {
      * @param settings Node settings to save to.
      */
     void saveSettingsForModel(final NodeSettingsWO settings);
+
+    /**
+     * Clears all stored credentials by resetting them to default values, e.g. empty strings.
+     * Advisable to call when stored credentials do not need to be persisted.
+     *
+     * @since 5.3
+     */
+    void clear();
 
     /**
      * @return a (deep) clone of this node settings object.

@@ -172,7 +172,7 @@ public class SingleSecretAuthProviderSettings implements AuthProviderSettings {
      * @return the name of the credentials flow variable for username/password authentication (or null, if not set).
      */
     public String getCredentialsName() {
-        String creds = m_credentialsName.getStringValue();
+        var creds = m_credentialsName.getStringValue();
         return StringUtils.isBlank(creds) ? null : creds;
     }
 
@@ -191,8 +191,8 @@ public class SingleSecretAuthProviderSettings implements AuthProviderSettings {
     }
 
     @Override
-    public void configureInModel(final PortObjectSpec[] specs, final Consumer<StatusMessage> statusMessageConsumer, final CredentialsProvider credentialsProvider)
-        throws InvalidSettingsException {
+    public void configureInModel(final PortObjectSpec[] specs, final Consumer<StatusMessage> statusMessageConsumer,
+        final CredentialsProvider credentialsProvider) throws InvalidSettingsException {
 
         if (useCredentials()) {
             if (credentialsProvider == null) {
@@ -242,7 +242,8 @@ public class SingleSecretAuthProviderSettings implements AuthProviderSettings {
                     .format("Please choose a credentials flow variable for %s authentication.", m_authType.getText()));
             }
         } else if (StringUtils.isBlank(m_secret.getStringValue()) && !m_allowBlankSecret) {
-            throw new InvalidSettingsException(String.format("Please provide a valid %s.", m_authType.getText().toLowerCase(Locale.ENGLISH)));
+            throw new InvalidSettingsException(
+                String.format("Please provide a valid %s.", m_authType.getText().toLowerCase(Locale.ENGLISH)));
         }
     }
 
@@ -262,9 +263,26 @@ public class SingleSecretAuthProviderSettings implements AuthProviderSettings {
      * @param settings
      */
     private void save(final NodeSettingsWO settings) {
+        if (!isEnabled()) {
+            // don't save and persist credentials if they are not selected
+            // see ticket AP-21749
+            clear();
+        } else {
+            if (m_useCredentials.getBooleanValue()) {
+                m_secret.setStringValue("");
+            } else {
+                m_credentialsName.setStringValue("");
+            }
+        }
         m_useCredentials.saveSettingsTo(settings);
         m_credentialsName.saveSettingsTo(settings);
         m_secret.saveSettingsTo(settings);
+    }
+
+    @Override
+    public void clear() {
+        m_credentialsName.setStringValue("");
+        m_secret.setStringValue("");
     }
 
     @Override
@@ -278,11 +296,10 @@ public class SingleSecretAuthProviderSettings implements AuthProviderSettings {
 
     @Override
     public AuthProviderSettings createClone() {
-        final NodeSettings tempSettings = new NodeSettings("ignored");
+        final var tempSettings = new NodeSettings("ignored");
         saveSettingsForModel(tempSettings);
 
-        final SingleSecretAuthProviderSettings toReturn =
-            new SingleSecretAuthProviderSettings(m_authType, m_allowBlankSecret);
+        final var toReturn = new SingleSecretAuthProviderSettings(m_authType, m_allowBlankSecret);
         try {
             toReturn.loadSettingsForModel(tempSettings);
         } catch (InvalidSettingsException ex) { // NOSONAR can never happen

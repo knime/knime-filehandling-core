@@ -173,7 +173,17 @@ public class UserAuthProviderSettings implements AuthProviderSettings {
      * @param settings
      */
     private void save(final NodeSettingsWO settings) {
+        if (!isEnabled()) {
+            // don't save and persist credentials if they are not selected
+            // see ticket AP-21749
+            clear();
+        }
         m_user.saveSettingsTo(settings);
+    }
+
+    @Override
+    public void clear() {
+        m_user.setStringValue("");
     }
 
     @Override
@@ -183,10 +193,10 @@ public class UserAuthProviderSettings implements AuthProviderSettings {
 
     @Override
     public AuthProviderSettings createClone() {
-        final NodeSettings tempSettings = new NodeSettings("ignored");
+        final var tempSettings = new NodeSettings("ignored");
         saveSettingsForModel(tempSettings);
 
-        final UserAuthProviderSettings toReturn = new UserAuthProviderSettings(m_authType);
+        final var toReturn = new UserAuthProviderSettings(m_authType);
         try {
             toReturn.loadSettingsForModel(tempSettings);
         } catch (InvalidSettingsException ex) { // NOSONAR can never happen
