@@ -100,6 +100,8 @@ public abstract class AbstractParameterizedFSTest {
 
     protected static final String MICROSOFT_BLOBSTORAGE = "microsoft-blobstorage";
 
+    protected static final String DATABRICKS_UNITY = "databricks-unity";
+
     protected static final String DATABRICKS_DBFS = "dbfs";
 
     protected static final String KNIME_LOCAL_RELATIVE_WORKFLOW = "knime-local-relative-workflow";

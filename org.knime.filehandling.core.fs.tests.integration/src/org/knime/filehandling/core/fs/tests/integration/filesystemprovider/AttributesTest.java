@@ -150,6 +150,7 @@ public class AttributesTest extends AbstractParameterizedFSTest {
 
     @Test
     public void test_empty_folder_time_invariants() throws Exception {
+        ignoreWithReason("Unity Files API does not support modification times on directories", DATABRICKS_UNITY);
         final Path testFolder = m_testInitializer.makePath("myfolder");
         if (m_connection.getFSDescriptor().getCapabilities().canWriteFiles()) {
             Files.createDirectory(testFolder);
@@ -159,6 +160,7 @@ public class AttributesTest extends AbstractParameterizedFSTest {
 
     @Test
     public void test_non_empty_folder_time_invariants() throws Exception {
+        ignoreWithReason("Unity Files API does not support modification times on directories", DATABRICKS_UNITY);
         final Path testFolder = m_testInitializer.makePath("folder");
         final Path testFile = testFolder.resolve("file");
         if (m_connection.getFSDescriptor().getCapabilities().canWriteFiles()) {

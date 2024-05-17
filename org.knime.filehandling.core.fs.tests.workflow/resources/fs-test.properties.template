@@ -20,6 +20,7 @@
 
 # Limits the integration tests to only one file system. The currently available file systems are:
 #   amazon-s3
+#   databricks-unity
 #   dbfs
 #   local
 #   ftp
@@ -60,6 +61,13 @@ amazon-s3.accessKeyId = <YOUR-ACCESS_KEY-ID>
 amazon-s3.accessKeySecret = <SECRET-FOR-YOUR-ACCESS-KEY>
 amazon-s3.roleSwitchAccount = <YOUR-S3-SWITCH_ROLE-ACCOUNT>
 amazon-s3.roleSwitchName = <ROLE-TO-SWITCH-TO>
+
+################ Databricks Unity Catalog ################
+# path inside a volume
+databricks-unity.workingDirPrefix = /my-catalog/my-schema/my-volume/knime-filehandling-test-dir
+# typically looks like https://<some-id>.cloud.databricks.com/
+databricks-unity.url = <DATABRICKS-DEPLOYMENT-URL>
+databricks-unity.token = <TOKEN>
 
 ################ Databricks DBFS ################
 dbfs.workingDirPrefix = /knime-filehandling-test-dir
