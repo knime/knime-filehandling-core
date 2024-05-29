@@ -351,8 +351,8 @@ public abstract class FSFileSystem<T extends FSPath> extends FileSystem {
      *         {@link WorkflowAware}; an empty {@link Optional} otherwise.
      */
     public Optional<WorkflowAware> getWorkflowAware() {
-        if (provider() instanceof WorkflowAware) {
-            return Optional.of((WorkflowAware)provider());
+        if (provider() instanceof WorkflowAware wa) {
+            return Optional.of(wa);
         } else {
             return Optional.empty();
         }
@@ -363,8 +363,8 @@ public abstract class FSFileSystem<T extends FSPath> extends FileSystem {
      *         {@link ItemVersionAware}; an empty {@link Optional} otherwise.
      */
     public Optional<ItemVersionAware> getItemVersionAware() {
-        if (provider() instanceof ItemVersionAware) {
-            return Optional.of((ItemVersionAware)provider());
+        if (provider() instanceof ItemVersionAware iva) {
+            return Optional.of(iva);
         } else {
             return Optional.empty();
         }

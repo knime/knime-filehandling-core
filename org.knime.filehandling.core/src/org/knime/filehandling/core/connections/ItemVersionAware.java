@@ -52,13 +52,17 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 
+import org.knime.core.util.hub.HubItemVersion;
+import org.knime.filehandling.core.connections.workflowaware.WorkflowAware;
+import org.knime.filehandling.core.util.TempPathCloseable;
+
 /**
  * This interface provides methods for working with Hub repository item versions. Some file system providers can
  * implement this interface to allow interacting with item versions.
  *
  * @author Zkriya Rakhimberdiyev, Redfield SE
  */
-public interface ItemVersionAware {
+public interface ItemVersionAware extends WorkflowAware {
 
     /**
      * Wrapper object for Item version details.
@@ -150,4 +154,22 @@ public interface ItemVersionAware {
      */
     RepositoryItemVersion createRepositoryItemVersion(FSPath itemPath, String title, String description)
         throws IOException;
+
+
+    /**
+     * Turns a versioned workflow path into a local workflow directory.
+     *
+     * @param workflowToRead The path of the workflow to read.
+     * @param version The version of the workflow to fetch
+     * @return a {@link TempPathCloseable} whose path references the workflow in its local directory shape.
+     * @throws IOException
+     */
+    TempPathCloseable downloadWorkflowAtVersion(final FSPath workflowToRead, final HubItemVersion version)
+        throws IOException;
+
+    @Override
+    default TempPathCloseable toLocalWorkflowDir(final FSPath workflowToRead) throws IOException {
+        return downloadWorkflowAtVersion(workflowToRead, HubItemVersion.currentState());
+    }
+
 }
