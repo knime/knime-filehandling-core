@@ -56,6 +56,7 @@ import java.net.URLConnection;
 import java.nio.file.Path;
 
 import org.knime.core.util.FileUtil;
+import org.knime.core.util.ThreadLocalHTTPAuthenticator;
 import org.knime.core.util.proxy.URLConnectionFactory;
 import org.knime.filehandling.core.connections.FSFileSystem;
 import org.knime.filehandling.core.connections.FSLocation;
@@ -129,11 +130,13 @@ class URIPath extends UnixStylePath {
      */
     public URLConnection openURLConnection(final int timeoutMillis) throws IOException {
         final var url = FileUtil.toURL(m_uri.toString());
-        final var connection = URLConnectionFactory.getConnection(url);
-        connection.setConnectTimeout(timeoutMillis);
-        connection.setReadTimeout(timeoutMillis);
-        connection.connect();
-        return connection;
+        try (final var c = ThreadLocalHTTPAuthenticator.suppressAuthenticationPopups()) {
+            final var connection = URLConnectionFactory.getConnection(url);
+            connection.setConnectTimeout(timeoutMillis);
+            connection.setReadTimeout(timeoutMillis);
+            connection.connect();
+            return connection;
+        }
     }
 
     /**
@@ -146,14 +149,16 @@ class URIPath extends UnixStylePath {
      */
     public URLConnection openURLConnection(final int timeoutMillis, final String httpMethod) throws IOException {
         final var url = FileUtil.toURL(m_uri.toString());
-        final var connection = URLConnectionFactory.getConnection(url);
-        connection.setConnectTimeout(timeoutMillis);
-        connection.setReadTimeout(timeoutMillis);
-        if (connection instanceof HttpURLConnection) {
-            ((HttpURLConnection)connection).setRequestMethod(httpMethod);
+        try (final var c = ThreadLocalHTTPAuthenticator.suppressAuthenticationPopups()) {
+            final var connection = URLConnectionFactory.getConnection(url);
+            connection.setConnectTimeout(timeoutMillis);
+            connection.setReadTimeout(timeoutMillis);
+            if (connection instanceof HttpURLConnection httpConn) {
+                httpConn.setRequestMethod(httpMethod);
+            }
+            connection.connect();
+            return connection;
         }
-        connection.connect();
-        return connection;
     }
 
     @Override
