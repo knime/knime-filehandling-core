@@ -49,6 +49,7 @@
 package org.knime.filehandling.core.node.table.reader.util;
 
 import org.knime.core.data.DataTableSpec;
+import org.knime.core.data.container.DataContainerSettings;
 import org.knime.core.data.filestore.FileStoreFactory;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.ExecutionContext;
@@ -101,15 +102,29 @@ public interface MultiTableRead<T> {
 
     /**
      * Read the table.
-     * 
+     *
      * @param exec for table creation
      * @return the table
      * @throws Exception if something goes awry
+     * @deprecated superseded by {@link #readTable(ExecutionContext, DataContainerSettings)}
      */
+    @Deprecated(since = "5.3")
     default BufferedDataTable readTable(final ExecutionContext exec) throws Exception {
-        final BufferedDataTableRowOutput output =
-                new BufferedDataTableRowOutput(exec.createDataContainer(getOutputSpec()));
-        final FileStoreFactory fsFactory = FileStoreFactory.createFileStoreFactory(exec);
+        return readTable(exec, DataContainerSettings.getDefault());
+    }
+
+    /**
+     * Read the table, allow to specify settings for the data container (i.e. do not check row keys for uniqueness)
+     *
+     * @param exec for table creation
+     * @param settings settings for the data container creation
+     * @return the table
+     * @throws Exception if something goes askew
+     */
+    default BufferedDataTable readTable(final ExecutionContext exec, final DataContainerSettings settings)
+        throws Exception {
+        final var output = new BufferedDataTableRowOutput(exec.createDataContainer(getOutputSpec(), settings));
+        final var fsFactory = FileStoreFactory.createFileStoreFactory(exec);
         fillRowOutput(output, exec, fsFactory);
         return output.getDataTable();
     }

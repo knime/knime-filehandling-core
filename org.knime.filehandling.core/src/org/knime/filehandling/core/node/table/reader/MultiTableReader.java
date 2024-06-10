@@ -51,6 +51,7 @@ package org.knime.filehandling.core.node.table.reader;
 import java.io.IOException;
 
 import org.knime.core.data.DataTableSpec;
+import org.knime.core.data.container.DataContainerSettings;
 import org.knime.core.data.filestore.FileStoreFactory;
 import org.knime.core.node.BufferedDataTable;
 import org.knime.core.node.ExecutionContext;
@@ -167,7 +168,14 @@ public final class MultiTableReader<I, C extends ReaderSpecificConfig<C>, T> {
         specExec.setProgress(1.0);
         exec.setMessage("Reading table");
         final MultiTableRead<T> multiTableRead = runConfig.withoutTransformation(sourceGroup);
-        return multiTableRead.readTable(exec.createSubExecutionContext(specConfigured ? 1 : 0.5));
+        final var tableReadingExec = exec.createSubExecutionContext(specConfigured ? 1 : 0.5);
+        final var trc = config.getTableReadConfig(); // might be null
+        final var checkForDuplicateRowKeys = trc == null || trc.useRowIDIdx(); // default to true, the safer option
+        final var containerSettings = DataContainerSettings.builder()//
+            .withCheckDuplicateRowKeys(checkForDuplicateRowKeys) // check for duplicate row keys if the keys are pulled
+                                                                 // from the data rather than generated.
+            .build();
+        return multiTableRead.readTable(tableReadingExec, containerSettings);
     }
 
     private boolean isConfiguredWith(final MultiTableReadConfig<C, T> config, final SourceGroup<I> sourceGroup) {

@@ -66,6 +66,7 @@ import org.knime.core.data.DataCell;
 import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataColumnSpecCreator.MergeOptions;
 import org.knime.core.data.DataTableSpec;
+import org.knime.core.data.container.DataContainerSettings;
 import org.knime.core.data.convert.map.ProductionPath;
 import org.knime.core.data.filestore.FileStoreFactory;
 import org.knime.core.node.BufferedDataTable;
@@ -278,7 +279,8 @@ final class DefaultStagedMultiTableRead<I, C extends ReaderSpecificConfig<C>, T,
         }
 
         @Override
-        public BufferedDataTable readTable(final ExecutionContext exec) throws Exception {
+        public BufferedDataTable readTable(final ExecutionContext exec, final DataContainerSettings dcs)
+            throws Exception {
             var fsFactory = FileStoreFactory.createFileStoreFactory(exec);
             var tables = new ArrayList<BufferedDataTable>();
             for (I item : m_sourceGroup) {
@@ -292,12 +294,12 @@ final class DefaultStagedMultiTableRead<I, C extends ReaderSpecificConfig<C>, T,
                 if (chunkReaders.size() == 1) {
                     // if there is only one chunk execute in current thread
                     try {
-                        tables.add(chunkReaders.get(0).readTableChunk());
+                        tables.add(chunkReaders.get(0).readTableChunk(dcs));
                     } catch (Exception ex) {
                         throw tryToParseException(ex, item);
                     }
                 } else {
-                    var tableChunks = readChunksInParallel(chunkReaders, item);
+                    var tableChunks = readChunksInParallel(chunkReaders, item, dcs);
                     validateChunks(tableChunks);
                     tables.addAll(tableChunks);
                 }
@@ -310,7 +312,6 @@ final class DefaultStagedMultiTableRead<I, C extends ReaderSpecificConfig<C>, T,
             return exec.createSpecReplacerTable(concatenatedTable, mergedSpec);
         }
 
-
         private BufferedDataTable concatenateTables(final ExecutionContext exec,
             final ArrayList<BufferedDataTable> tables) throws CanceledExecutionException {
             if (m_config.getTableReadConfig().useRowIDIdx()) {
@@ -319,7 +320,7 @@ final class DefaultStagedMultiTableRead<I, C extends ReaderSpecificConfig<C>, T,
                 return InternalTableAPI.concatenateWithNewRowID(exec, tables.toArray(BufferedDataTable[]::new));
             }
         }
-        
+
         private DataTableSpec mergeSpecs(final Stream<DataTableSpec> specs) {
             // varying types should not happen because we determine the common DataType beforehand
             var merger = new DataTableSpecMerger(MergeOptions.ALLOW_VARYING_ELEMENT_NAMES);
@@ -339,11 +340,11 @@ final class DefaultStagedMultiTableRead<I, C extends ReaderSpecificConfig<C>, T,
         }
 
         private Collection<BufferedDataTable> readChunksInParallel(final Iterable<TableChunkReader> chunkReaders,
-            final I item) throws Exception {
+            final I item,  final DataContainerSettings dcs) throws Exception {
             try {
                 // runInvisible ensures that the waiting thread does not block a core token
                 return KNIMEConstants.GLOBAL_THREAD_POOL.runInvisible(() -> {
-                    var tableFutures = submitChunks(chunkReaders);
+                    var tableFutures = submitChunks(chunkReaders, dcs);
                     return collectChunks(item, tableFutures);
                 });
             } catch (ExecutionException ex) {//NOSONAR
@@ -351,12 +352,12 @@ final class DefaultStagedMultiTableRead<I, C extends ReaderSpecificConfig<C>, T,
             }
         }
 
-        private Collection<Future<BufferedDataTable>> submitChunks(final Iterable<TableChunkReader> chunkReaders)
-            throws InterruptedException {
+        private Collection<Future<BufferedDataTable>> submitChunks(final Iterable<TableChunkReader> chunkReaders,
+            final DataContainerSettings dcs) throws InterruptedException {
             var tableFutures = new ArrayList<Future<BufferedDataTable>>();
             for (var reader : chunkReaders) {
                 tableFutures.add(KNIMEConstants.GLOBAL_THREAD_POOL
-                    .submit(ThreadUtils.callableWithContext(reader::readTableChunk)));
+                    .submit(ThreadUtils.callableWithContext(() -> reader.readTableChunk(dcs))));
             }
             return tableFutures;
         }
@@ -398,9 +399,9 @@ final class DefaultStagedMultiTableRead<I, C extends ReaderSpecificConfig<C>, T,
                 m_exec = exec;
             }
 
-            BufferedDataTable readTableChunk() throws Exception {
+            BufferedDataTable readTableChunk(final DataContainerSettings dcs) throws Exception {
                 try {
-                    var container = m_exec.createDataContainer(getOutputSpec());
+                    var container = m_exec.createDataContainer(getOutputSpec(), dcs);
                     var rowOutput = new BufferedDataTableRowOutput(container);
                     m_tableReader.fillOutput(m_read, rowOutput, m_exec);
                     container.close();
