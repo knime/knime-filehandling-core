@@ -279,7 +279,7 @@ public class KNIMEConnection {
             }
         }
 
-        return MountPointFileSystemAccessService.instance().isReadable(URI.create(getSchemeAndHost()));
+        return MountPointFileSystemAccessService.instance().isAuthenticated(URI.create(getSchemeAndHost()));
     }
 
     /**
