@@ -290,11 +290,22 @@ public final class MountPointFileSystemAccessService {
     }
 
     /**
+     * Checks whether the given URI location is authenticated.
+     *
+     * @param uri the location of the file
+     * @return true if the location is authenticated
+     */
+    public boolean isAuthenticated(final URI uri) {
+        return getProvider().isAuthenticated(uri);
+    }
+
+    /**
      * Checks whether a file at the given URI location is readable.
      *
      * @param uri the location of the file
      * @return true if the file is readable
-     * @throws IOException if mounpoint does not exist or information fetching fails
+     * @throws IOException if mountpoint does not exist or information fetching fails
+     * @see #isAuthenticated(URI)
      */
     public boolean isReadable(final URI uri) throws IOException {
         return getProvider().isReadable(uri);

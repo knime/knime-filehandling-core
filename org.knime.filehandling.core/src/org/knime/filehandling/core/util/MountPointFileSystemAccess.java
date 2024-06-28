@@ -172,12 +172,22 @@ public interface MountPointFileSystemAccess {
      */
     File toLocalWorkflowDir(URI uri) throws IOException;
 
+
+    /**
+     * Checks whether the given URI location is authenticated.
+     *
+     * @param uri the location of the file
+     * @return true if the location is authenticated
+     */
+    boolean isAuthenticated(URI uri);
+
     /**
      * Checks whether a file at the given URI location is readable.
      *
      * @param uri the location of the file
      * @return true if the file is readable
      * @throws IOException if mountpoint does not exist or the information fetching fails
+     * @see #isAuthenticated(URI)
      */
     boolean isReadable(URI uri) throws IOException;
 
