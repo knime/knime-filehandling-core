@@ -350,7 +350,9 @@ public final class TableTransformationTableModel<T> extends AbstractTableModel
                     getNameAfterInit(column), new ProductionPathOrDataType(productionPath), idx, keepUnknownColumns());
                 newColumns.put(column, transformation);
             }
-            m_nameChecker.add(transformation.getName());
+            if (transformation.keep()) {
+                m_nameChecker.add(transformation.getName());
+            }
             m_transformations.add(transformation);
             idx++;
         }
