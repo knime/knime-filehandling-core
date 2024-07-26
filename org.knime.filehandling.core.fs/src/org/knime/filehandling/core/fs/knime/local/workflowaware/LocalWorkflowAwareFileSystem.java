@@ -67,6 +67,7 @@ import org.knime.core.util.workflowalizer.MetadataConfig;
 import org.knime.filehandling.core.connections.FSLocationSpec;
 import org.knime.filehandling.core.connections.base.BaseFileSystem;
 import org.knime.filehandling.core.connections.workflowaware.Entity;
+import org.knime.filehandling.core.connections.workflowaware.WorkflowAwareErrorHandling;
 
 /**
  * A workflow-aware file system implementation that is backed by a folder in the local file system. The contents of this
@@ -324,7 +325,9 @@ public abstract class LocalWorkflowAwareFileSystem extends BaseFileSystem<LocalW
      * @throws IOException on other failures
      */
     public Path toLocalPathWithAccessibilityCheck(final LocalWorkflowAwarePath path) throws IOException {
-        if (!isPathAccessible(path)) {
+        if (!isWorkflow(path) && isPartOfWorkflow(path)) {
+            throw WorkflowAwareErrorHandling.createAccessInsideWorkflowException(path.toString());
+        } else if (!isPathAccessible(path)) {
             throw new NoSuchFileException(path.toString());
         } else {
             return toLocalPath(path);

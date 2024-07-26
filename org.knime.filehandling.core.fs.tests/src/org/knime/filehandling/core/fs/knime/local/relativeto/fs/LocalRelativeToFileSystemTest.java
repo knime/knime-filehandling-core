@@ -70,6 +70,7 @@ import java.util.stream.Stream;
 
 import org.junit.Test;
 import org.knime.core.node.workflow.NodeContext;
+import org.knime.filehandling.core.connections.workflowaware.WorkflowAwareErrorHandling.AccessInsideWorkflowException;
 import org.knime.filehandling.core.fs.knime.local.workflowaware.LocalWorkflowAwarePath;
 import org.knime.filehandling.core.tests.common.workflow.WorkflowTestUtil;
 
@@ -128,7 +129,7 @@ public class LocalRelativeToFileSystemTest extends LocalRelativeToFileSystemTest
         assertPathInaccessible(getMountpointRelativeFS(), "/../../../somewhere-outside");
     }
 
-    @Test(expected = NoSuchFileException.class)
+    @Test(expected = AccessInsideWorkflowException.class)
     public void insideCurrentWorkflowWithWorkflowRelative() throws IOException {
         final LocalRelativeToFileSystem fs = getWorkflowRelativeFS();
         final LocalWorkflowAwarePath path = fs.getPath("../current-workflow/some-file.txt");
@@ -136,7 +137,7 @@ public class LocalRelativeToFileSystemTest extends LocalRelativeToFileSystemTest
         fs.toLocalPathWithAccessibilityCheck(path); // does throw an exception
     }
 
-    @Test(expected = NoSuchFileException.class)
+    @Test(expected = AccessInsideWorkflowException.class)
     public void insideCurrentWorkflowWithMountpointRelative() throws IOException {
         final LocalRelativeToFileSystem fs = getMountpointRelativeFS();
         final LocalWorkflowAwarePath path = fs.getPath("/current-workflow/some-file.txt");
@@ -144,7 +145,7 @@ public class LocalRelativeToFileSystemTest extends LocalRelativeToFileSystemTest
         fs.toLocalPathWithAccessibilityCheck(path); // throws exception
     }
 
-    @Test(expected = NoSuchFileException.class)
+    @Test(expected = AccessInsideWorkflowException.class)
     public void insideOtherWorkflowWithWorkflowRelative() throws IOException {
         final LocalRelativeToFileSystem fs = getWorkflowRelativeFS();
         final LocalWorkflowAwarePath path = fs.getPath("../other-workflow/some-file.txt");
@@ -152,7 +153,7 @@ public class LocalRelativeToFileSystemTest extends LocalRelativeToFileSystemTest
         fs.toLocalPathWithAccessibilityCheck(path); // throws exception
     }
 
-    @Test(expected = NoSuchFileException.class)
+    @Test(expected = AccessInsideWorkflowException.class)
     public void insideOtherWorkflowWithMountpointRelative() throws IOException {
         final LocalRelativeToFileSystem fs = getMountpointRelativeFS();
         final LocalWorkflowAwarePath path = fs.getPath("/other-workflow/some-file.txt");

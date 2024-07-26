@@ -129,10 +129,29 @@ public final class WorkflowAwareErrorHandling {
      * Creates a standardized exception for the case that users try to access paths within a workflow.
      *
      * @param pathIntoWorkflow the path into the workflow
-     * @return a {@link FileSystemException} that tells the user that accessing paths within a workflow is not allowed
+     * @return a {@link AccessInsideWorkflowException} that tells the user that accessing paths within a workflow is not
+     *         allowed
      */
-    public static FileSystemException createAccessInsideWorkflowException(final String pathIntoWorkflow) {
-        return new NoSuchFileException(pathIntoWorkflow);
+    public static AccessInsideWorkflowException createAccessInsideWorkflowException(final String pathIntoWorkflow) {
+        return new AccessInsideWorkflowException(pathIntoWorkflow);
+    }
+
+    /**
+     * A {@link FileSystemException} thrown by {@link WorkflowAware} file systems to indicate that a path lies within a
+     * workflow.
+     *
+     * This class extends {@link NoSuchFileException} because prior to the introduction of this class, such an exception
+     * was thrown by {@link WorkflowAwareErrorHandling#createAccessInsideWorkflowException(String)}.
+     *
+     * @author Jasper Krauter, KNIME GmbH, Konstanz, Germany
+     * @since 5.4
+     */
+    public static class AccessInsideWorkflowException extends NoSuchFileException {
+        private static final long serialVersionUID = 1L;
+
+        AccessInsideWorkflowException(final String pathIntoWorkflow) {
+            super(pathIntoWorkflow, null, "Accessing paths inside a workflow is not allowed.");
+        }
     }
 
     /**
@@ -152,7 +171,7 @@ public final class WorkflowAwareErrorHandling {
         /**
          * Constructor for operations affecting a single file.
          *
-         * @param path path to the Knime Object
+         * @param path path to the KNIME Object
          * @param reason for this exception
          */
         WorkflowAwareFSException(final String path, final String reason, final Entity entity,
