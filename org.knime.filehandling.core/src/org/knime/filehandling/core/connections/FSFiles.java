@@ -48,10 +48,12 @@
  */
 package org.knime.filehandling.core.connections;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.net.URISyntaxException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.CopyOption;
 import java.nio.file.FileAlreadyExistsException;
@@ -77,6 +79,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.util.CheckUtils;
+import org.knime.core.util.FileUtil;
+import org.knime.filehandling.core.connections.meta.FSDescriptorRegistry;
+import org.knime.filehandling.core.connections.meta.FSType;
+import org.knime.filehandling.core.connections.uriexport.URIExporterIDs;
+import org.knime.filehandling.core.connections.uriexport.noconfig.NoConfigURIExporterFactory;
 import org.knime.filehandling.core.connections.workflowaware.WorkflowAware;
 import org.knime.filehandling.core.connections.workflowaware.WorkflowAwareUtil;
 import org.knime.filehandling.core.defaultnodesettings.ExceptionUtil;
@@ -636,6 +643,101 @@ public final class FSFiles {
 
         try (var tempPathCloseable = sourceProvider.toLocalWorkflowDir(source)) {
             targetProvider.deployWorkflow(tempPathCloseable.getTempFileOrFolder(), target, true, false);
+        }
+    }
+
+    private static String[] getTempFilePrefixAndSuffix(final Path origFile) {
+        final var filename = origFile.getFileName().toString();
+
+        final var firstDotIdx = filename.indexOf(".");
+        if (firstDotIdx == -1) {
+            return new String[] {filename, ""};
+        } else {
+            var prefix = filename.substring(0, firstDotIdx);
+            if (prefix.length() > 15) {
+                prefix = prefix.substring(0, 15);
+            }
+            final var suffix = filename.substring(firstDotIdx);
+            return new String[] {prefix, suffix};
+        }
+    }
+
+    /**
+     * Maps the given source {@link FSPath} to a local file, downloading the source file if necessary. If downloaded,
+     * the {@link LocalFileHandle#close()} method of the returned {@link LocalFileHandle} will dispose of the file. This
+     * method performs no additional checks whether the source file exists, whether it is actually a file, ... etc.
+     *
+     * @param source
+     * @return a record containing a String with a local file path and a Closable which can be called to remove
+     *         temporary files.
+     * @throws IOException
+     */
+    @SuppressWarnings("resource")
+    public static LocalFileHandle toLocalFile(final FSPath source) throws IOException {
+
+        final var absoluteNormalizedPath = (FSPath) source.toAbsolutePath().normalize();
+
+        // 1st attempt: check if path is actually local file system
+        if (source.getFileSystem().getFSType() == FSType.LOCAL_FS) {
+            return new LocalFileHandle(absoluteNormalizedPath.toString(), ()-> {});
+        }
+
+        // 2nd attempt: check if path can be mapped to a knime:// URL that resolves to a local file
+        final var fsDescr = FSDescriptorRegistry.getFSDescriptor(source.getFileSystem().getFSType())//
+                .orElseThrow();
+        if (fsDescr.getURIExporters().contains((URIExporterIDs.LEGACY_KNIME_URL))) {
+            final var knimeUrlExporter =
+                (NoConfigURIExporterFactory)fsDescr.getURIExporterFactory(URIExporterIDs.LEGACY_KNIME_URL);
+            try {
+                final var url = knimeUrlExporter.getExporter().toUri(absoluteNormalizedPath);
+                final var resolvedLocalPath = FileUtil.resolveToPath(url.toURL());
+                if (resolvedLocalPath != null) {
+                    return new LocalFileHandle(resolvedLocalPath.toAbsolutePath().normalize().toString(),
+                        () -> {});
+                }
+            } catch (URISyntaxException ex) {
+                throw ExceptionUtil.wrapAsIOException(ex);
+            }
+        }
+
+        // fallback: transfer remote file into local temp file
+        final var prefixAndSuffix = getTempFilePrefixAndSuffix(absoluteNormalizedPath);
+        final var tempFile = FileUtil.createTempFile(prefixAndSuffix[0], prefixAndSuffix[1], true)//
+                .toPath()//
+                .toAbsolutePath()//
+                .normalize();
+
+        try (final var out = Files.newOutputStream(tempFile)) {
+            LOGGER.debug("Started download of file " + absoluteNormalizedPath + " to local temp file." );
+            Files.copy(absoluteNormalizedPath, out);
+            LOGGER.debug("Finished download of file " + absoluteNormalizedPath + "." );
+            return new LocalFileHandle(tempFile.toString(), () -> FSFiles.deleteSafely(tempFile));
+        } catch (AccessDeniedException e) { // NOSONAR
+            FSFiles.deleteSafely(tempFile);
+            throw ExceptionUtil.createAccessDeniedException(source);
+        } catch (NoSuchFileException e) {  // NOSONAR
+            FSFiles.deleteSafely(tempFile);
+            throw ExceptionUtil.createFormattedNoSuchFileException(e, "File");
+        } catch (IOException e) {
+            FSFiles.deleteSafely(tempFile);
+            throw e;
+        }
+    }
+
+    /**
+     * A handle for a local file, created by {@link #toLocalFile(FSPath)}. Users of the class must ensure that
+     * {@link #close()} is invoked once the file is not needed anymore.
+     *
+     * @param path String path of the local file.
+     * @param closer A {@link Closeable} that disposes of the file, if necessary.
+     */
+    public record LocalFileHandle(
+        String path, //
+        Closeable closer) implements Closeable {
+
+        @Override
+        public void close() throws IOException {
+            closer.close();
         }
     }
 }
