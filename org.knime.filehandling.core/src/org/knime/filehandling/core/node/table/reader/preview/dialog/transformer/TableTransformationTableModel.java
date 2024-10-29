@@ -326,77 +326,51 @@ public final class TableTransformationTableModel<T> extends AbstractTableModel
         return includedByColumnFilterMode && includeBySkipEmptyColumns;
     }
 
-    /**
-     * Update transformations based on the current raw spec.
-     *
-     * This method arranges the columns in the following way: (AP-17655)
-     * 1. Known columns that are still present in the new spec, in the order they were configured before
-     * 2. New columns, in the order they appear in the new spec
-     * 3. The placeholder for any columns that are not present in the spec
-     */
     private void updateTransformations() {
+        final LinkedHashMap<TypedReaderColumnSpec<T>, MutableColumnTransformation<T>> newColumns =
+            new LinkedHashMap<>();
+        final Set<TypedReaderColumnSpec<T>> knownColumns = new HashSet<>();
+        // the null spec corresponds to the placeholder for new columns and thus is always known
+        knownColumns.add(TypedReaderColumnSpec.getNull());
+        boolean tableChanged = false;
+        int idx = 0;
         m_transformations.clear();
         m_nameChecker.clear();
-        var tableChanged = false;
-        final var newColumns = new LinkedHashMap<TypedReaderColumnSpec<T>, MutableColumnTransformation<T>>();
-        final var knownColumns = new HashMap<TypedReaderColumnSpec<T>, MutableColumnTransformation<T>>();
-        var inputIndex = 0;
+        m_transformations.add(m_newColTransformationPlaceholder);
+        m_newColTransformationPlaceholder.setPosition(-1);
         for (TypedReaderColumnSpec<T> column : m_rawSpec.getUnion()) {
             MutableColumnTransformation<T> transformation = m_bySpec.get(column);
             if (transformation != null) {
-                // Known column, but it might be at a new position in the input table
-                transformation.setOriginalPosition(inputIndex);
-                knownColumns.put(column, transformation);
+                knownColumns.add(column);
+                tableChanged |= transformation.setPosition(idx);
+                transformation.setOriginalPosition(idx);
             } else {
-                // New column -- the table has changed
-                tableChanged = true;
-                final var productionPath = getProductionPathForUnknownColumn(column);
-                // Position in output unknown yet -- will be adjusted later
-                transformation = new MutableColumnTransformation<>(createDefaultSpec(column), column, inputIndex,
-                    getNameAfterInit(column), new ProductionPathOrDataType(productionPath), -1, keepUnknownColumns());
+                final ProductionPath productionPath = getProductionPathForUnknownColumn(column);
+                transformation = new MutableColumnTransformation<>(createDefaultSpec(column), column, idx,
+                    getNameAfterInit(column), new ProductionPathOrDataType(productionPath), idx, keepUnknownColumns());
                 newColumns.put(column, transformation);
             }
             if (transformation.keep()) {
                 m_nameChecker.add(transformation.getName());
             }
-            inputIndex++;
-        }
-
-        // Insert columns in output order
-        var outputIndex = 0;
-        // Add known columns in the order in which they were configured before
-        // We cannot use their `getPosition` value directly because some columns might have been deleted
-        for (var transformation : knownColumns.values().stream()
-            .sorted((a, b) -> Integer.compare(a.getPosition(), b.getPosition())).toList()) {
-            // Set output index, if an output position changes, the table has changed
-            tableChanged |= transformation.setPosition(outputIndex);
             m_transformations.add(transformation);
-            outputIndex++;
+            idx++;
         }
-        // Add all new columns at the end, in order of appearance in the input table (newColumns is ordered)
-        for (var transformation : newColumns.values()) {
-            transformation.setPosition(outputIndex);
-            m_transformations.add(transformation);
-            outputIndex++;
-        }
-        // Add placeholder for unknown columns
-        m_newColTransformationPlaceholder.setPosition(-1);
-        m_transformations.add(m_newColTransformationPlaceholder);
-
+        tableChanged |= !newColumns.isEmpty();
         final int oldNumberOfTransformations = m_bySpec.size();
         // identify removed columns (we can't remove them directly as this would cause a ConcurrentModificationException
         final Set<TypedReaderColumnSpec<T>> removedColumns = m_bySpec.keySet().stream()//
-            // the null spec corresponds to the placeholder for new columns and thus is always known
-            .filter(c -> !knownColumns.containsKey(c) && !c.equals(TypedReaderColumnSpec.getNull()))//
+            .filter(c -> !knownColumns.contains(c))//
             .collect(toSet());
 
-        // remove columns that are no longer present from m_bySpec
+        // remove columns that are no longer present from m_bySpec and m_byName
         removedColumns.forEach(m_bySpec::remove);
 
         tableChanged |= oldNumberOfTransformations != m_bySpec.size();
 
-        // add new columns for lookup on next spec change
+        // add new columns
         m_bySpec.putAll(newColumns);
+        sortByOutputIdx();
 
         if (tableChanged) {
             fireTableDataChanged();
