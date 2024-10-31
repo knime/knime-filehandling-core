@@ -330,9 +330,10 @@ public final class TableTransformationTableModel<T> extends AbstractTableModel
      * Update transformations based on the current raw spec.
      *
      * This method arranges the columns in the following way: (AP-17655)
-     * 1. Known columns that are still present in the new spec, in the order they were configured before
-     * 2. New columns, in the order they appear in the new spec
-     * 3. The placeholder for any columns that are not present in the spec
+     * 1. All known columns that were configured to be before any new unknown columns (the placeholder in the dialog)
+     * 2. All new unknown columns
+     * 3. The placeholder for new unknown columns
+     * 4. All remaining known columns
      */
     private void updateTransformations() {
         m_transformations.clear();
@@ -340,6 +341,8 @@ public final class TableTransformationTableModel<T> extends AbstractTableModel
         var tableChanged = false;
         final var newColumns = new LinkedHashMap<TypedReaderColumnSpec<T>, MutableColumnTransformation<T>>();
         final var knownColumns = new HashMap<TypedReaderColumnSpec<T>, MutableColumnTransformation<T>>();
+        // We know the placeholder for new columns, and its configured position
+        knownColumns.put(TypedReaderColumnSpec.getNull(), m_newColTransformationPlaceholder);
         var inputIndex = 0;
         for (TypedReaderColumnSpec<T> column : m_rawSpec.getUnion()) {
             MutableColumnTransformation<T> transformation = m_bySpec.get(column);
@@ -365,23 +368,23 @@ public final class TableTransformationTableModel<T> extends AbstractTableModel
         // Insert columns in output order
         var outputIndex = 0;
         // Add known columns in the order in which they were configured before
-        // We cannot use their `getPosition` value directly because some columns might have been deleted
-        for (var transformation : knownColumns.values().stream()
+        // We cannot use their `getPosition` value directly because some columns might have been deleted or added
+        for (var knownTransformation : knownColumns.values().stream()
             .sorted((a, b) -> Integer.compare(a.getPosition(), b.getPosition())).toList()) {
+            if (knownTransformation == m_newColTransformationPlaceholder) {
+                // Add all new columns, in order of appearance in the input table (newColumns is ordered)
+                for (var newTransformation : newColumns.values()) {
+                    newTransformation.setPosition(outputIndex);
+                    m_transformations.add(newTransformation);
+                    outputIndex++;
+                }
+                // Placeholder for new unknown columns is added by the lines below
+            }
             // Set output index, if an output position changes, the table has changed
-            tableChanged |= transformation.setPosition(outputIndex);
-            m_transformations.add(transformation);
+            tableChanged |= knownTransformation.setPosition(outputIndex);
+            m_transformations.add(knownTransformation);
             outputIndex++;
         }
-        // Add all new columns at the end, in order of appearance in the input table (newColumns is ordered)
-        for (var transformation : newColumns.values()) {
-            transformation.setPosition(outputIndex);
-            m_transformations.add(transformation);
-            outputIndex++;
-        }
-        // Add placeholder for unknown columns
-        m_newColTransformationPlaceholder.setPosition(-1);
-        m_transformations.add(m_newColTransformationPlaceholder);
 
         final int oldNumberOfTransformations = m_bySpec.size();
         // identify removed columns (we can't remove them directly as this would cause a ConcurrentModificationException
