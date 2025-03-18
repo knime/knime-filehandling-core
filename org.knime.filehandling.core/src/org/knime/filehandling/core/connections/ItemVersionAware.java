@@ -53,6 +53,7 @@ import java.time.Instant;
 import java.util.List;
 
 import org.knime.core.util.hub.HubItemVersion;
+import org.knime.core.util.hub.ItemVersion;
 import org.knime.filehandling.core.connections.workflowaware.WorkflowAware;
 import org.knime.filehandling.core.util.TempPathCloseable;
 
@@ -88,9 +89,8 @@ public interface ItemVersionAware extends WorkflowAware {
          * @param author
          * @param createdOn
          */
-        public RepositoryItemVersion(final long version, final String title, final String description, final String author,
-            final Instant createdOn) {
-
+        public RepositoryItemVersion(final long version, final String title, final String description,
+            final String author, final Instant createdOn) {
             m_version = version;
             m_title = title;
             m_description = description;
@@ -155,7 +155,6 @@ public interface ItemVersionAware extends WorkflowAware {
     RepositoryItemVersion createRepositoryItemVersion(FSPath itemPath, String title, String description)
         throws IOException;
 
-
     /**
      * Turns a versioned workflow path into a local workflow directory.
      *
@@ -163,13 +162,34 @@ public interface ItemVersionAware extends WorkflowAware {
      * @param version The version of the workflow to fetch
      * @return a {@link TempPathCloseable} whose path references the workflow in its local directory shape.
      * @throws IOException
+     * @deprecated use {@link #downloadWorkflowAtVersion(FSPath, ItemVersion)} instead
      */
-    TempPathCloseable downloadWorkflowAtVersion(final FSPath workflowToRead, final HubItemVersion version)
+    @Deprecated(since = "5.5", forRemoval = true)
+    default TempPathCloseable downloadWorkflowAtVersion(final FSPath workflowToRead, final HubItemVersion version)
+        throws IOException {
+        return downloadWorkflowAtVersion(workflowToRead, HubItemVersion.convert(version));
+    }
+
+    /**
+     * Turns a versioned workflow path into a local workflow directory.
+     *
+     * @param workflowToRead the path of the workflow to read
+     * @param version the version of the workflow to fetch
+     * @return a {@link TempPathCloseable} whose path references the workflow in its local directory shape
+     * @throws IOException if the workflow could not be downloaded
+     */
+    TempPathCloseable downloadWorkflowAtVersion(final FSPath workflowToRead, final ItemVersion version)
         throws IOException;
 
+    /**
+     * {@inheritDoc}
+     *
+     * <b>Note:</b> This method retrieves the workflow at the path in its {@link ItemVersion#currentState() current
+     * state}.
+     */
     @Override
     default TempPathCloseable toLocalWorkflowDir(final FSPath workflowToRead) throws IOException {
-        return downloadWorkflowAtVersion(workflowToRead, HubItemVersion.currentState());
+        return downloadWorkflowAtVersion(workflowToRead, ItemVersion.currentState());
     }
 
 }
