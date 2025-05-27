@@ -50,8 +50,11 @@ package org.knime.filehandling.core.fs.knime.local.relativeto.fs;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
+import org.knime.core.node.workflow.NodeContext;
 import org.knime.core.node.workflow.WorkflowContext;
+import org.knime.core.node.workflow.virtual.DataAreaProvider;
 import org.knime.filehandling.core.connections.FSConnection;
 import org.knime.filehandling.core.connections.RelativeTo;
 import org.knime.filehandling.core.connections.base.BaseFSConnection;
@@ -88,11 +91,17 @@ public final class LocalRelativeToWorkflowDataFSConnection extends BaseFSConnect
                 "Nodes in a shared component don't have access to the workflow data area.");
         }
 
-        final var workflowContext = WorkflowContextUtil.getWorkflowContext();
-        final var workflowLocation = workflowContext.getCurrentLocation().toPath().toAbsolutePath().normalize();
-
-        final var workflowDataDir = workflowLocation.resolve("data");
-        Files.createDirectories(workflowDataDir);
+        Path workflowDataDir = null;
+        var dataAreaProvider = NodeContext.getContext().getContextObjectForClass(DataAreaProvider.class).orElse(null);
+        if (dataAreaProvider != null) {
+            workflowDataDir = dataAreaProvider.getDataAreaPath().orElse(null);
+        }
+        if (workflowDataDir == null) {
+            final var workflowContext = WorkflowContextUtil.getWorkflowContext();
+            final var workflowLocation = workflowContext.getCurrentLocation().toPath().toAbsolutePath().normalize();
+            workflowDataDir = workflowLocation.resolve("data");
+            Files.createDirectories(workflowDataDir);
+        }
 
         m_fileSystem = new LocalRelativeToFileSystem(null, //
             workflowDataDir, //
