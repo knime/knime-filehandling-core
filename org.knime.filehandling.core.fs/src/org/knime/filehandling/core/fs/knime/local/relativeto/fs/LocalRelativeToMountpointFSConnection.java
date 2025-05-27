@@ -49,6 +49,8 @@
 package org.knime.filehandling.core.fs.knime.local.relativeto.fs;
 
 import org.knime.core.node.workflow.WorkflowContext;
+import org.knime.core.node.workflow.virtual.VirtualNodeContext;
+import org.knime.core.node.workflow.virtual.VirtualNodeContext.Restriction;
 import org.knime.filehandling.core.connections.FSConnection;
 import org.knime.filehandling.core.connections.RelativeTo;
 import org.knime.filehandling.core.connections.base.BaseFSConnection;
@@ -78,6 +80,11 @@ public class LocalRelativeToMountpointFSConnection extends BaseFSConnection {
      * @param config The config to use.
      */
     public LocalRelativeToMountpointFSConnection(final RelativeToFSConnectionConfig config) {
+        if (VirtualNodeContext.getContext().map(vnc -> vnc.hasRestriction(Restriction.RELATIVE_RESOURCE_ACCESS))
+            .orElse(Boolean.FALSE)) {
+            throw new IllegalStateException(
+                "Node is not allowed to access mountpoint-relative resources because it's executed within in a restricted (virtual) scope.");
+        }
 
         final var workflowContext = WorkflowContextUtil.getWorkflowContext();
         if (WorkflowContextUtil.isServerContext(workflowContext)) {

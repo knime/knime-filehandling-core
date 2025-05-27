@@ -51,6 +51,8 @@ package org.knime.filehandling.core.fs.knime.local.relativeto.fs;
 import java.io.IOException;
 
 import org.knime.core.node.workflow.WorkflowContext;
+import org.knime.core.node.workflow.virtual.VirtualNodeContext;
+import org.knime.core.node.workflow.virtual.VirtualNodeContext.Restriction;
 import org.knime.filehandling.core.connections.FSConnection;
 import org.knime.filehandling.core.connections.FSPath;
 import org.knime.filehandling.core.connections.RelativeTo;
@@ -86,6 +88,12 @@ public class LocalRelativeToWorkflowFSConnection extends BaseFSConnection {
         if (CheckNodeContextUtil.isInComponentProject()) {
             throw new IllegalStateException(
                 "Nodes in a shared component don't have access to workflow-relative locations.");
+        }
+
+        if (VirtualNodeContext.getContext().map(vnc -> vnc.hasRestriction(Restriction.RELATIVE_RESOURCE_ACCESS))
+            .orElse(Boolean.FALSE)) {
+            throw new IllegalStateException(
+                "Node is not allowed to access workflow-relative resources because it's executed within in a restricted (virtual) scope.");
         }
 
         final var workflowContext = WorkflowContextUtil.getWorkflowContext();

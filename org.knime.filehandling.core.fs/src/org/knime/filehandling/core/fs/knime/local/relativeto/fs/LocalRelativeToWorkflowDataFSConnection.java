@@ -50,8 +50,11 @@ package org.knime.filehandling.core.fs.knime.local.relativeto.fs;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.knime.core.node.workflow.WorkflowContext;
+import org.knime.core.node.workflow.virtual.VirtualNodeContext;
+import org.knime.core.node.workflow.virtual.VirtualNodeContext.Restriction;
 import org.knime.filehandling.core.connections.FSConnection;
 import org.knime.filehandling.core.connections.RelativeTo;
 import org.knime.filehandling.core.connections.base.BaseFSConnection;
@@ -88,11 +91,20 @@ public final class LocalRelativeToWorkflowDataFSConnection extends BaseFSConnect
                 "Nodes in a shared component don't have access to the workflow data area.");
         }
 
-        final var workflowContext = WorkflowContextUtil.getWorkflowContext();
-        final var workflowLocation = workflowContext.getCurrentLocation().toPath().toAbsolutePath().normalize();
-
-        final var workflowDataDir = workflowLocation.resolve("data");
-        Files.createDirectories(workflowDataDir);
+        Path workflowDataDir = null;
+        var virtualNodeContext = VirtualNodeContext.getContext().orElse(null);
+        if (virtualNodeContext != null && virtualNodeContext.hasRestriction(Restriction.WORKFLOW_DATA_AREA_ACCESS)) {
+            workflowDataDir = virtualNodeContext.getVirtualDataAreaPath().orElse(null);
+            if (workflowDataDir == null) {
+                throw new IllegalStateException(
+                    "Node is not allowed to access workflow data area because it's executed within in a restricted (virtual) scope.");
+            }
+        } else {
+            final var workflowContext = WorkflowContextUtil.getWorkflowContext();
+            final var workflowLocation = workflowContext.getCurrentLocation().toPath().toAbsolutePath().normalize();
+            workflowDataDir = workflowLocation.resolve("data");
+            Files.createDirectories(workflowDataDir);
+        }
 
         m_fileSystem = new LocalRelativeToFileSystem(null, //
             workflowDataDir, //
