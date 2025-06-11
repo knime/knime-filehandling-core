@@ -90,7 +90,7 @@ public class LocalRelativeToWorkflowFSConnection extends BaseFSConnection {
                 "Nodes in a shared component don't have access to workflow-relative locations.");
         }
 
-        if (VirtualNodeContext.getContext().map(vnc -> vnc.hasRestriction(Restriction.RELATIVE_RESOURCE_ACCESS))
+        if (VirtualNodeContext.getContext().map(vnc -> vnc.hasRestriction(Restriction.WORKFLOW_RELATIVE_RESOURCE_ACCESS))
             .orElse(Boolean.FALSE)) {
             throw new IllegalStateException(
                 "Node is not allowed to access workflow-relative resources because it's executed within in a restricted (virtual) scope.");
