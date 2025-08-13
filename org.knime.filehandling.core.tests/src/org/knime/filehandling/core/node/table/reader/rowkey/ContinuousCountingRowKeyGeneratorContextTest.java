@@ -49,7 +49,7 @@
 package org.knime.filehandling.core.node.table.reader.rowkey;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.nio.file.Path;
 
@@ -97,7 +97,7 @@ public class ContinuousCountingRowKeyGeneratorContextTest {
         assertEquals(RowKey.createRowKey(0L), keyGen.createKey(m_randomAccessible));
         assertEquals(RowKey.createRowKey(1L), keyGen.createKey(m_randomAccessible));
         assertEquals(RowKey.createRowKey(2L), keyGen.createKey(m_randomAccessible));
-        verifyZeroInteractions(m_randomAccessible);
+        verifyNoInteractions(m_randomAccessible);
     }
 
     /**
@@ -113,7 +113,7 @@ public class ContinuousCountingRowKeyGeneratorContextTest {
         assertEquals(RowKey.createRowKey(3L), keyGen2.createKey(m_randomAccessible));
         assertEquals(RowKey.createRowKey(4L), keyGen2.createKey(m_randomAccessible));
         assertEquals(RowKey.createRowKey(5L), keyGen2.createKey(m_randomAccessible));
-        verifyZeroInteractions(m_randomAccessible);
+        verifyNoInteractions(m_randomAccessible);
     }
 
     /**
@@ -129,7 +129,7 @@ public class ContinuousCountingRowKeyGeneratorContextTest {
         assertEquals(RowKey.createRowKey(3L), keyGen2.createKey(m_randomAccessible));
         assertEquals(RowKey.createRowKey(4L), keyGen2.createKey(m_randomAccessible));
         assertEquals(RowKey.createRowKey(5L), keyGen1.createKey(m_randomAccessible));
-        verifyZeroInteractions(m_randomAccessible);
+        verifyNoInteractions(m_randomAccessible);
     }
 
 }
