@@ -239,9 +239,11 @@ public final class AuthSettings {
     public void loadSettingsForModel(final NodeSettingsRO authSettings) throws InvalidSettingsException {
         load(authSettings);
 
-        for (AuthProviderSettings provSettings : m_providerSettings.values()) {
-            provSettings
-                .loadSettingsForModel(authSettings.getNodeSettings(provSettings.getAuthType().getSettingsKey()));
+        for (AuthProviderSettings providerSettings : m_providerSettings.values()) {
+            final var authType = providerSettings.getAuthType();
+            final var authTypeKey = authType.getSettingsKey();
+            final var authSettingsForType = authSettings.getNodeSettings(authTypeKey);
+            providerSettings.loadSettingsForModel(authSettingsForType);
         }
 
         updateEnabledness();
@@ -256,9 +258,11 @@ public final class AuthSettings {
     public void validateSettings(final NodeSettingsRO authSettings) throws InvalidSettingsException {
         m_authType.validateSettings(authSettings);
 
-        for (AuthProviderSettings provSettings : m_providerSettings.values()) {
-            provSettings
-                .validateSettings(authSettings.getNodeSettings(provSettings.getAuthType().getSettingsKey()));
+        for (AuthProviderSettings providerSettings : m_providerSettings.values()) {
+            final var authType = providerSettings.getAuthType();
+            final var authTypeKey = authType.getSettingsKey();
+            final var authSettingsForType = authSettings.getNodeSettings(authTypeKey);
+            providerSettings.validateSettings(authSettingsForType);
         }
     }
 
@@ -292,15 +296,16 @@ public final class AuthSettings {
         final Map<AuthType, AuthProviderPanel<?>> providerPanels) throws InvalidSettingsException {
         save(authSettingsParent);
 
-        for (AuthProviderSettings provSettings : m_providerSettings.values()) {
-            final var curr = provSettings.getAuthType();
-            final var providerSettingsWO = authSettingsParent.addNodeSettings(curr.getSettingsKey());
+        for (AuthProviderSettings providerSettings : m_providerSettings.values()) {
+            final var currentAuthType = providerSettings.getAuthType();
+            final var currentAuthTypeKey = currentAuthType.getSettingsKey();
+            final var providerSettingsWO = authSettingsParent.addNodeSettings(currentAuthTypeKey);
 
-            final AuthProviderPanel<?> currPanel =  providerPanels.get(curr);
-            CheckUtils.checkArgument(provSettings == currPanel.getSettings(), "Panel is using different settings.");
+            final AuthProviderPanel<?> currentPanel =  providerPanels.get(currentAuthType);
+            CheckUtils.checkArgument(providerSettings == currentPanel.getSettings(), "Panel is using different settings.");
 
             // in the dialog, the panel loads/saves settings, not the settings object
-            currPanel.saveSettingsForDialog(providerSettingsWO);
+            currentPanel.saveSettingsForDialog(providerSettingsWO);
         }
     }
 
@@ -316,9 +321,11 @@ public final class AuthSettings {
     public void saveSettingsForModel(final NodeSettingsWO authSettingsParent) {
         save(authSettingsParent);
 
-        for (AuthProviderSettings provSettings : m_providerSettings.values()) {
-            provSettings
-                .saveSettingsForModel(authSettingsParent.addNodeSettings(provSettings.getAuthType().getSettingsKey()));
+        for (AuthProviderSettings providerSettings : m_providerSettings.values()) {
+            final var authType = providerSettings.getAuthType();
+            final var authTypeKey = authType.getSettingsKey();
+            final var authSettingsForType = authSettingsParent.addNodeSettings(authTypeKey);
+            providerSettings.saveSettingsForModel(authSettingsForType);
         }
     }
 
