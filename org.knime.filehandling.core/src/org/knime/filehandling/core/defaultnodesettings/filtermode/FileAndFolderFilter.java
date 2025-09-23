@@ -80,8 +80,10 @@ public final class FileAndFolderFilter implements BiPredicate<Path, BasicFileAtt
      *
      * @author Julian Bunzel, KNIME GmbH, Berlin, Germany
      * @author Simon Schmid, KNIME GmbH, Konstanz, Germany
+     * @noreference non-public API
+     * @noinstantiate non-public API
      */
-    enum FilterType implements ButtonGroupEnumInterface {
+    public enum FilterType implements ButtonGroupEnumInterface {
 
             /**
              * Only files or folders with names containing the wildcard pass this filter.
