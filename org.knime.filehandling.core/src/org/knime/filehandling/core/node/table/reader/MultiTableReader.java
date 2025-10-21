@@ -71,7 +71,7 @@ import org.knime.filehandling.core.node.table.reader.util.StagedMultiTableRead;
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  * @author Simon Schmid, KNIME GmbH, Konstanz, Germany
  * @author Tobias Koetter, KNIME GmbH, Konstanz, Germany
- * @param <I> the type of the item to read from
+ * @param <I> the item type to read from
  * @param <C> the type of the {@link ReaderSpecificConfig}
  * @param <T> the type used to identify external data types
  * @noreference non-public API

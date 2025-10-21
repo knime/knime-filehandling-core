@@ -44,43 +44,71 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Dec 4, 2020 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   May 7, 2020 (Mark Ortmann, KNIME GmbH, Berlin, Germany): created
  */
 package org.knime.filehandling.core.node.table.reader.paths;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.function.Consumer;
+
 import org.knime.core.node.InvalidSettingsException;
-import org.knime.core.node.NodeSettings;
-import org.knime.core.node.NodeSettingsRO;
-import org.knime.core.node.NodeSettingsWO;
+import org.knime.filehandling.core.connections.FSPath;
+import org.knime.filehandling.core.defaultnodesettings.filechooser.reader.ReadPathAccessor;
+import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage;
+import org.knime.filehandling.core.node.table.reader.preview.dialog.GenericItemAccessor;
 
 /**
- * Interface defining {@link Source Sources} that can be validated, saved to, and loaded from {@link NodeSettings}.
+ * Interface defining {@link Source Sources} that allow to access paths.
  *
- * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
- * @param <I> the type of source items the item accessor returns
+ * @author Mark Ortmann, KNIME GmbH, Berlin, Germany
+ * @noreference non-public API
+ * @noimplement non-public API
  */
-public interface SourceSettings<I> extends Source<I> {
+public interface Path extends Source<FSPath> {
 
     /**
-     * Serializes the class specific settings to the given <code>NodeSettingsWO</code>.
+     * Returns the stored path, which can be {@code null}.
      *
-     * @param settings to serialize the class settings to
+     * @return the {@code String} representation of the stored path
      */
-    public void saveSettingsTo(final NodeSettingsWO settings);
+    String getPath();
+
+    @Override
+    default String getSourceIdentifier() {
+        return getPath();
+    }
 
     /**
-     * Loads the class specific settings from the given <code>NodeSettingsRO</code>.
+     * Creates a {@link ReadPathAccessor} to be used in reader nodes.
      *
-     * @param settings to load the class settings from
-     * @throws InvalidSettingsException If the validation of the settings failed.
+     * @return a {@link ReadPathAccessor}
      */
-    public void loadSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException;
+    ReadPathAccessor createReadPathAccessor();
 
-    /**
-     * Read the expected values from the settings object, without assigning them to the internal variables!
-     *
-     * @param settings the object to read the value(s) from
-     * @throws InvalidSettingsException if the value(s) in the settings object are invalid.
-     */
-    public void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException;
+    @SuppressWarnings("resource")
+    @Override
+    default GenericItemAccessor<FSPath> createItemAccessor() {
+        final ReadPathAccessor pathAccessor = createReadPathAccessor();
+        return new GenericItemAccessor<FSPath>() {
+
+            @Override
+            public void close() throws IOException {
+                pathAccessor.close();
+            }
+
+            @Override
+            public List<FSPath> getItems(final Consumer<StatusMessage> statusMessageConsumer)
+                throws IOException, InvalidSettingsException {
+                return pathAccessor.getFSPaths(statusMessageConsumer);
+            }
+
+            @Override
+            public FSPath getRootItem(final Consumer<StatusMessage> statusMessageConsumer)
+                throws IOException, InvalidSettingsException {
+                return pathAccessor.getRootPath(statusMessageConsumer);
+            }
+        };
+    }
+
 }
