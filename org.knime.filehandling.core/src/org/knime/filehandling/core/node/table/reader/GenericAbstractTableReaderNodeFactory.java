@@ -48,29 +48,24 @@
  */
 package org.knime.filehandling.core.node.table.reader;
 
-import java.util.Optional;
-
-import org.knime.core.data.convert.map.ProducerRegistry;
 import org.knime.core.data.convert.map.ProductionPath;
-import org.knime.core.node.BufferedDataTable;
-import org.knime.core.node.ConfigurableNodeFactory;
+import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
-import org.knime.core.node.NodeView;
+import org.knime.core.node.NodeSettings;
+import org.knime.core.node.NodeSettingsRO;
+import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.context.NodeCreationConfiguration;
-import org.knime.core.node.context.ports.PortsConfiguration;
-import org.knime.filehandling.core.node.table.reader.config.MultiTableReadConfig;
 import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig;
 import org.knime.filehandling.core.node.table.reader.config.StorableMultiTableReadConfig;
-import org.knime.filehandling.core.node.table.reader.paths.PathSettings;
 import org.knime.filehandling.core.node.table.reader.paths.SourceSettings;
 import org.knime.filehandling.core.node.table.reader.preview.dialog.AbstractTableReaderNodeDialog;
-import org.knime.filehandling.core.node.table.reader.rowkey.DefaultRowKeyGeneratorContextFactory;
-import org.knime.filehandling.core.node.table.reader.rowkey.GenericRowKeyGeneratorContextFactory;
-import org.knime.filehandling.core.node.table.reader.type.hierarchy.TypeHierarchy;
-import org.knime.filehandling.core.port.FileSystemPortObject;
+import org.knime.filehandling.core.util.SettingsUtils;
 
 /**
- * An abstract implementation of a node factory for table reader nodes based on the table reader framework.
+ * An abstract implementation of a node factory for table reader nodes that builds on top of
+ * {@link CommonTableReaderNodeFactory}, but uses a swing-based {@link NodeDialogPane}, as well as a
+ * {@link StorableMultiTableReadConfig} and {@link SourceSettings} that provide methods to validate, save to, and load
+ * from {@link NodeSettings}.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  * @author Tobias Koetter, KNIME GmbH, Konstanz, Germany
@@ -82,88 +77,13 @@ import org.knime.filehandling.core.port.FileSystemPortObject;
  * @noextend non-public API
  */
 public abstract class GenericAbstractTableReaderNodeFactory<I, C extends ReaderSpecificConfig<C>, T, V>
-    extends ConfigurableNodeFactory<TableReaderNodeModel<I, C, T>> {
-
-    /** The file system ports group id. */
-    protected static final String FS_CONNECT_GRP_ID = "File System Connection";
-
-    /**
-     * Creates a {@link PathSettings} object configured for this reader node.
-     *
-     * @param nodeCreationConfig the {@link NodeCreationConfiguration}
-     *
-     * @return a new path settings object configured for this reader
-     */
-    protected abstract SourceSettings<I> createPathSettings(final NodeCreationConfiguration nodeCreationConfig);
-
-    /**
-     * Returns the {@link ReadAdapterFactory} used by this reader node.
-     *
-     * @return the ReadAdapterFactory
-     */
-    protected abstract ReadAdapterFactory<T, V> getReadAdapterFactory();
-
-    /**
-     * Creates the {@link TableReader} for this reader node.
-     *
-     * @return a new table reader
-     */
-    protected abstract GenericTableReader<I, C, T, V> createReader();
-
-    /**
-     * Extracts a string representation from <b>value</b> that is used as row key.
-     *
-     * @param value to extract the row key from
-     * @return a string representation of <b>value</b> that can be used as row key
-     */
-    protected abstract String extractRowKey(V value);
-
-    /**
-     * Returns the {@link TypeHierarchy} of the external types.
-     *
-     * @return the type hierarchy of the external types
-     */
-    protected abstract TypeHierarchy<T, T> getTypeHierarchy();
-
-    @Override
-    public TableReaderNodeModel<I, C, T> createNodeModel(final NodeCreationConfiguration creationConfig) {
-        final StorableMultiTableReadConfig<C, T> config = createConfig(creationConfig);
-        final SourceSettings<I> pathSettings = createPathSettings(creationConfig);
-        final MultiTableReader<I, C, T> reader = createMultiTableReader();
-        final Optional<? extends PortsConfiguration> portConfig = creationConfig.getPortConfig();
-        if (portConfig.isPresent()) {
-            return new TableReaderNodeModel<>(config, pathSettings, reader, portConfig.get());
-        } else {
-            return new TableReaderNodeModel<>(config, pathSettings, reader);
-        }
-    }
-
-    /**
-     * Creates a new @link MultiTableReader and returns it.
-     *
-     * @return a new multi table reader
-     */
-    protected final MultiTableReader<I, C, T> createMultiTableReader() {
-        return new MultiTableReader<>(createMultiTableReadFactory(createReader()));
-    }
+    extends CommonTableReaderNodeFactory<I, SourceSettings<I>, C, T, StorableMultiTableReadConfig<C, T>, V> {
 
     @Override
     protected NodeDialogPane createNodeDialogPane(final NodeCreationConfiguration creationConfig) {
         final MultiTableReadFactory<I, C, T> readFactory = createMultiTableReadFactory(createReader());
         final ProductionPathProvider<T> productionPathProvider = createProductionPathProvider();
         return createNodeDialogPane(creationConfig, readFactory, productionPathProvider);
-    }
-
-    /**
-     * Creates and returns a new {@link DefaultProductionPathProvider} using the {@link ReadAdapterFactory} returned by
-     * {@link #getReadAdapterFactory()}.
-     *
-     * @return the default production path provider
-     */
-    protected ProductionPathProvider<T> createProductionPathProvider() {
-        final ReadAdapterFactory<T, V> readAdapterFactory = getReadAdapterFactory();
-        return new DefaultProductionPathProvider<>(readAdapterFactory.getProducerRegistry(),
-            readAdapterFactory::getDefaultType);
     }
 
     /**
@@ -178,64 +98,37 @@ public abstract class GenericAbstractTableReaderNodeFactory<I, C extends ReaderS
         final NodeCreationConfiguration creationConfig, final MultiTableReadFactory<I, C, T> readFactory,
         final ProductionPathProvider<T> defaultProductionPathFn);
 
-    /**
-     * Creates a new {@link MultiTableReadFactory} with the given {@link GenericTableReader} and returns it.
-     *
-     * @param reader the table reader used to create the {@link MultiTableReadFactory}
-     *
-     * @return a new multi table reader
-     */
-    protected MultiTableReadFactory<I, C, T>
-        createMultiTableReadFactory(final GenericTableReader<I, C, T, V> reader) {
-        final ReadAdapterFactory<T, V> readAdapterFactory = getReadAdapterFactory();
-        final ProductionPathProvider<T> productionPathProvider = createProductionPathProvider();
-        final GenericRowKeyGeneratorContextFactory<I, V> rowKeyGenFactory =
-            new DefaultRowKeyGeneratorContextFactory<>(this::extractRowKey, "File");
-        return new DefaultMultiTableReadFactory<>(getTypeHierarchy(), rowKeyGenFactory, reader, productionPathProvider,
-            readAdapterFactory::createReadAdapter);
+    final class GenericConfigAndSourceSerializer
+        implements ConfigAndSourceSerializer<I, SourceSettings<I>, C, T, StorableMultiTableReadConfig<C, T>> {
+
+        @Override
+        public void saveSettingsTo(final SourceSettings<I> sourceSettings,
+            final StorableMultiTableReadConfig<C, T> config, final NodeSettingsWO settings) {
+            config.saveInModel(settings);
+            sourceSettings.saveSettingsTo(SettingsUtils.getOrAdd(settings, SettingsUtils.CFG_SETTINGS_TAB));
+        }
+
+        @Override
+        public void validateSettings(final SourceSettings<I> sourceSettings,
+            final StorableMultiTableReadConfig<C, T> config, final NodeSettingsRO settings)
+            throws InvalidSettingsException {
+            config.validate(settings);
+            sourceSettings.validateSettings(settings.getNodeSettings(SettingsUtils.CFG_SETTINGS_TAB));
+        }
+
+        @Override
+        public void loadValidatedSettingsFrom(final SourceSettings<I> sourceSettings,
+            final StorableMultiTableReadConfig<C, T> config, final NodeSettingsRO settings)
+            throws InvalidSettingsException {
+            config.loadInModel(settings);
+            sourceSettings.loadSettingsFrom(settings.getNodeSettings(SettingsUtils.CFG_SETTINGS_TAB));
+        }
     }
 
     @Override
-    protected Optional<PortsConfigurationBuilder> createPortsConfigBuilder() {
-        PortsConfigurationBuilder builder = new PortsConfigurationBuilder();
-        // Don't forget to update TableReaderNodeModel.FS_CONNECTION_PORT if the index changes
-        builder.addOptionalInputPortGroup(FS_CONNECT_GRP_ID, FileSystemPortObject.TYPE);
-        builder.addFixedOutputPortGroup("Data Table", BufferedDataTable.TYPE);
-        return Optional.of(builder);
-    }
-
-    /**
-     * Creates a {@link MultiTableReadConfig} for use in a reader node model.</br>
-     *
-     * @param nodeCreationConfig the {@link NodeCreationConfiguration}
-     * @return {@link MultiTableReadConfig} for a node model
-     */
-    protected abstract StorableMultiTableReadConfig<C, T>
-        createConfig(final NodeCreationConfiguration nodeCreationConfig);
-
-    @Override
-    protected final int getNrNodeViews() {
-        return 0;
-    }
-
-    @Override
-    public final NodeView<TableReaderNodeModel<I, C, T>> createNodeView(final int viewIndex,
-        final TableReaderNodeModel<I, C, T> nodeModel) {
-        return null;
-    }
-
-    /**
-     * Returns the {@link ProducerRegistry} used by the {@link ReadAdapterFactory}.
-     *
-     * @return the {@link ProducerRegistry}
-     */
-    protected ProducerRegistry<T, ? extends ReadAdapter<T, V>> getProducerRegistry() {
-        return getReadAdapterFactory().getProducerRegistry();
-    }
-
-    @Override
-    protected boolean hasDialog() {
-        return true;
+    protected ConfigAndSourceSerializer<I, SourceSettings<I>, C, T, StorableMultiTableReadConfig<C, T>>
+        createSerializer() {
+        return new GenericConfigAndSourceSerializer();
     }
 
 }

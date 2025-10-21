@@ -72,29 +72,33 @@ import org.knime.core.node.streamable.StreamableOperator;
 import org.knime.core.node.streamable.StreamableOperatorInternals;
 import org.knime.filehandling.core.defaultnodesettings.status.NodeModelStatusConsumer;
 import org.knime.filehandling.core.defaultnodesettings.status.StatusMessage.MessageType;
+import org.knime.filehandling.core.node.table.reader.CommonTableReaderNodeFactory.ConfigAndSourceSerializer;
+import org.knime.filehandling.core.node.table.reader.config.MultiTableReadConfig;
 import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig;
-import org.knime.filehandling.core.node.table.reader.config.StorableMultiTableReadConfig;
-import org.knime.filehandling.core.node.table.reader.paths.SourceSettings;
+import org.knime.filehandling.core.node.table.reader.paths.Source;
 import org.knime.filehandling.core.node.table.reader.preview.dialog.GenericItemAccessor;
-import org.knime.filehandling.core.util.SettingsUtils;
 
 /**
  * Generic implementation of a Reader node that reads tables.
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  * @param <I> the type of the item to read from
+ * @param <S> the type of {@link Source}
  * @param <C> the type of {@link ReaderSpecificConfig}
  * @param <T> the type used to identify external data types
+ * @param <M> the type of {@link MultiTableReadConfig}
  * @noreference non-public API
  * @noimplement non-public API
  */
-public class TableReaderNodeModel<I, C extends ReaderSpecificConfig<C>, T> extends NodeModel {
+public class TableReaderNodeModel<I, S extends Source<I>, C extends ReaderSpecificConfig<C>, T, //
+        M extends MultiTableReadConfig<C, T>>
+    extends NodeModel {
 
     static final int FS_INPUT_PORT = 0;
 
-    private final StorableMultiTableReadConfig<C, T> m_config;
+    private final M m_config;
 
-    private final SourceSettings<I> m_sourceSettings;
+    private final S m_sourceSettings;
 
     private final NodeModelStatusConsumer m_statusConsumer =
         new NodeModelStatusConsumer(EnumSet.of(MessageType.ERROR, MessageType.WARNING));
@@ -105,19 +109,23 @@ public class TableReaderNodeModel<I, C extends ReaderSpecificConfig<C>, T> exten
      */
     private final MultiTableReader<I, C, T> m_tableReader;
 
+    private final ConfigAndSourceSerializer<I, S, C, T, M> m_serializer;
+
     /**
      * Constructs a node model with no inputs and one output.
      *
      * @param config storing the user settings
      * @param pathSettingsModel storing the paths selected by the user
      * @param tableReader reader for reading tables
+     * @param serializer serializer for the source and config
      */
-    protected TableReaderNodeModel(final StorableMultiTableReadConfig<C, T> config,
-        final SourceSettings<I> pathSettingsModel, final MultiTableReader<I, C, T> tableReader) {
+    protected TableReaderNodeModel(final M config, final S pathSettingsModel,
+        final MultiTableReader<I, C, T> tableReader, final ConfigAndSourceSerializer<I, S, C, T, M> serializer) {
         super(0, 1);
         m_config = config;
         m_sourceSettings = pathSettingsModel;
         m_tableReader = tableReader;
+        m_serializer = serializer;
     }
 
     /**
@@ -126,15 +134,17 @@ public class TableReaderNodeModel<I, C extends ReaderSpecificConfig<C>, T> exten
      * @param config storing the user settings
      * @param pathSettingsModel storing the paths selected by the user
      * @param tableReader reader for reading tables
+     * @param serializer serializer for the source and config
      * @param portsConfig determines the in and outports.
      */
-    protected TableReaderNodeModel(final StorableMultiTableReadConfig<C, T> config,
-        final SourceSettings<I> pathSettingsModel, final MultiTableReader<I, C, T> tableReader,
+    protected TableReaderNodeModel(final M config, final S pathSettingsModel,
+        final MultiTableReader<I, C, T> tableReader, final ConfigAndSourceSerializer<I, S, C, T, M> serializer,
         final PortsConfiguration portsConfig) {
         super(portsConfig.getInputPorts(), portsConfig.getOutputPorts());
         m_config = config;
         m_sourceSettings = pathSettingsModel;
         m_tableReader = tableReader;
+        m_serializer = serializer;
     }
 
     @Override
@@ -220,20 +230,17 @@ public class TableReaderNodeModel<I, C extends ReaderSpecificConfig<C>, T> exten
 
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) {
-        m_config.saveInModel(settings);
-        m_sourceSettings.saveSettingsTo(SettingsUtils.getOrAdd(settings, SettingsUtils.CFG_SETTINGS_TAB));
+        m_serializer.saveSettingsTo(m_sourceSettings, m_config, settings);
     }
 
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_config.validate(settings);
-        m_sourceSettings.validateSettings(settings.getNodeSettings(SettingsUtils.CFG_SETTINGS_TAB));
+        m_serializer.validateSettings(m_sourceSettings, m_config, settings);
     }
 
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_config.loadInModel(settings);
-        m_sourceSettings.loadSettingsFrom(settings.getNodeSettings(SettingsUtils.CFG_SETTINGS_TAB));
+        m_serializer.loadValidatedSettingsFrom(m_sourceSettings, m_config, settings);
     }
 
     @Override
@@ -246,7 +253,7 @@ public class TableReaderNodeModel<I, C extends ReaderSpecificConfig<C>, T> exten
      *
      * @return the config
      */
-    protected final StorableMultiTableReadConfig<C, T> getConfig() {
+    protected final M getConfig() {
         return m_config;
     }
 
