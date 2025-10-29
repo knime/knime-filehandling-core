@@ -80,10 +80,14 @@ import java.util.zip.InflaterInputStream;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.NullProgressMonitor;
+import org.knime.core.internal.knimeurl.ExplorerURLStreamHandler;
 import org.knime.core.node.NodeLogger;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.NodeContext;
 import org.knime.core.util.FileUtil;
+import org.knime.core.util.KnimeUrlType;
+import org.knime.core.util.pathresolve.ResolverUtil;
 import org.knime.filehandling.core.connections.base.BaseFileSystemProvider;
 import org.knime.filehandling.core.connections.base.attributes.BaseFileAttributes;
 import org.knime.filehandling.core.util.IOESupplier;
@@ -259,6 +263,21 @@ class URIFileSystemProvider extends BaseFileSystemProvider<URIPath, URIFileSyste
                     return true;
                 }
 
+                final var uri = path.getURI();
+                final Path local = FileUtil.resolveToPath(uri.toURL());
+                if (local != null) {
+                    return Files.exists(local);
+                }
+
+                if (KnimeUrlType.getType(uri).isPresent()) {
+                    // KNIME URL, try to be efficient by using the URL service
+                    final var resolver = ResolverUtil.getURLService(uri);
+                    final var absoluteUrl = ExplorerURLStreamHandler.resolveKNIMEURLToAbsolute(uri.toURL());
+                    if (resolver.isPresent() && absoluteUrl.isPresent()) {
+                        return resolver.get().fetchItemInfo(absoluteUrl.get().toURI(), new NullProgressMonitor()).isPresent();
+                    }
+                }
+
                 try (var in = path.openURLConnection(m_timeoutInMillis).getInputStream()) {
                     // yes, do nothing.
                 }
@@ -345,7 +364,8 @@ class URIFileSystemProvider extends BaseFileSystemProvider<URIPath, URIFileSyste
 
         return doWithNodeContext(() -> { // NOSONAR
             try {
-                final Path localFile = FileUtil.resolveToPath(path.getURI().toURL());
+                final var uri = path.getURI();
+                final Path localFile = FileUtil.resolveToPath(uri.toURL());
                 if (localFile != null) {
                     final BasicFileAttributes attr = Files.readAttributes(localFile, BasicFileAttributes.class);
                     return new BaseFileAttributes(attr.isRegularFile(), //
@@ -357,18 +377,30 @@ class URIFileSystemProvider extends BaseFileSystemProvider<URIPath, URIFileSyste
                         attr.isSymbolicLink(), //
                         attr.isOther(),
                         null);
-                } else {
-                    final long fileSize;
-
-                    if (path.isDirectory()) {
-                        fileSize = 0L;
-                    } else {
-                        fileSize = getRemoteFileSize(path);
-                    }
-
-                    return new BaseFileAttributes(!path.isDirectory(), path, FileTime.fromMillis(0L),
-                        FileTime.fromMillis(0L), FileTime.fromMillis(0L), fileSize, false, false, null);
                 }
+
+                if (KnimeUrlType.getType(uri).isPresent()) {
+                    // KNIME URL, try to be efficient by using the URL service
+                    final var resolver = ResolverUtil.getURLService(uri);
+                    final var absoluteUrl = ExplorerURLStreamHandler.resolveKNIMEURLToAbsolute(uri.toURL());
+                    if (resolver.isPresent() && absoluteUrl.isPresent()) {
+                        final var optItemInfo =
+                            resolver.get().fetchItemInfo(absoluteUrl.get().toURI(), new NullProgressMonitor());
+                        final long fileSize = optItemInfo.map(info -> info.size().orElse(0L)).orElse(0L);
+                        return new BaseFileAttributes(!path.isDirectory(), path, FileTime.fromMillis(0L),
+                            FileTime.fromMillis(0L), FileTime.fromMillis(0L), fileSize, false, false, null);
+                    }
+                }
+
+                final long fileSize;
+                if (path.isDirectory()) {
+                    fileSize = 0L;
+                } else {
+                    fileSize = getRemoteFileSize(path);
+                }
+
+                return new BaseFileAttributes(!path.isDirectory(), path, FileTime.fromMillis(0L),
+                    FileTime.fromMillis(0L), FileTime.fromMillis(0L), fileSize, false, false, null);
             } catch (final URISyntaxException ex) {
                 throw new IOException(ex);
             }
