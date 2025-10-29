@@ -104,7 +104,8 @@ public final class DefaultFSConnectionFactory {
     public static FSConnection createCustomURLConnection(final FSLocation fsLocation) {
         CheckUtils.checkArgument(fsLocation.getFSCategory() == FSCategory.CUSTOM_URL,
             "FSLocation must have category CUSTOM_URL");
-        return createCustomURLConnection(fsLocation.getPath(), extractCustomURLTimeout(fsLocation));
+        final URI uri = URI.create(fsLocation.getPath().replace(" ", "%20"));
+        return createCustomURLConnection(uri, Duration.ofMillis(extractCustomURLTimeout(fsLocation)));
     }
 
     private static int extractCustomURLTimeout(final FSLocationSpec location) {
@@ -124,9 +125,13 @@ public final class DefaultFSConnectionFactory {
     }
 
     public static FSConnection createCustomURLConnection(final String url, final int timeoutInMillis) {
+        return createCustomURLConnection(URI.create(url.replace(" ", "%20")), Duration.ofMillis(timeoutInMillis));
+    }
+
+    private static FSConnection createCustomURLConnection(final URI uri, final Duration timeout) {
         final URIFSConnectionConfig config = new URIFSConnectionConfig();
-        config.setTimeout(Duration.ofMillis(timeoutInMillis));
-        config.setURI(URI.create(url.replace(" ", "%20")));
+        config.setTimeout(timeout);
+        config.setURI(uri);
 
         try {
             return FSDescriptorRegistry.getFSDescriptor(FSType.CUSTOM_URL) // NOSONAR connection closed later

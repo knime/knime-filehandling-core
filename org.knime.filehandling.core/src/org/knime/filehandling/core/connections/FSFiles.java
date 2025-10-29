@@ -74,7 +74,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.knime.core.node.NodeLogger;
@@ -634,7 +633,7 @@ public final class FSFiles {
             throw new IOException("Target file system does not support workflow transfer");
         }
 
-        if (exists(target) && !Set.of(options).contains(StandardCopyOption.REPLACE_EXISTING)) {
+        if (exists(target) && !Arrays.asList(options).contains(StandardCopyOption.REPLACE_EXISTING)) {
             throw new FileAlreadyExistsException(target.toString());
         }
 
