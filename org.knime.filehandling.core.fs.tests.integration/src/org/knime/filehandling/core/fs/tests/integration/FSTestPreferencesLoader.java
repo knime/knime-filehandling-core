@@ -52,7 +52,7 @@ import java.util.Optional;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Platform;
-import org.knime.core.node.workflow.BatchExecutor;
+import org.knime.core.util.EclipseUtil;
 
 /**
  * Loads an optional KNIME preferences file from environment variable {@code KNIME_FS_TEST_PREFERENCES} pointing to a
@@ -81,9 +81,9 @@ public final class FSTestPreferencesLoader {
             final Optional<Path> workspaceFile = workspaceRootPath();
 
             if (env.isPresent()) {
-                BatchExecutor.setPreferences(env.get().toFile());
+                EclipseUtil.setPreferences(env.get().toFile());
             } else if (workspaceFile.isPresent()) {
-                BatchExecutor.setPreferences(workspaceFile.get().toFile());
+                EclipseUtil.setPreferences(workspaceFile.get().toFile());
             }
         } catch (final IOException|CoreException e) {
             throw new RuntimeException("Failed to load test preferences.", e);
