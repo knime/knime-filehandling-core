@@ -48,21 +48,35 @@
  */
 package org.knime.filehandling.core.defaultnodesettings;
 
-import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hc.core5.net.URIAuthority;
+import org.apache.hc.core5.net.URIBuilder;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.core.node.workflow.WorkflowContext;
 import org.knime.core.node.workflow.contextv2.JobExecutorInfo;
 import org.knime.core.node.workflow.contextv2.RestLocationInfo;
+import org.knime.core.util.KnimeUrlType;
+import org.knime.filehandling.core.connections.RelativeTo;
+import org.knime.filehandling.core.connections.meta.FSType;
 import org.knime.filehandling.core.util.MountPointFileSystemAccessService;
 import org.knime.filehandling.core.util.WorkflowContextUtil;
 
 /**
  * Class encapsulating the different types of KNIME file system connections.
+ * <p>
+ * This class does not perform any I/O. It mainly defines the mapping between
+ * {@link KnimeUrlType KNIME-specific URL authorities/paths} and their
+ * corresponding file systems (FS) - to which we are able to connect in the AP.
+ *
+ * The methods in this class are utilities for resolving relative vs. absolute
+ * FS specifiers, look up known mountpoints, and construct {@link URI URIs}.
+ * </p>
  *
  * @author Björn Lohrmann, KNIME GmbH, Berlin, Germany
  * @noreference non-public API
@@ -80,53 +94,107 @@ public class KNIMEConnection {
             /**
              * knime://knime.workflow/
              */
-            WORKFLOW_RELATIVE("knime://knime.workflow"),
+            WORKFLOW_RELATIVE(KnimeUrlType.WORKFLOW_RELATIVE),
+
+            /**
+             * knime://knime.space/
+             *
+             * <p>
+             * NOTE: Internally, this is handled as a synonym of {@link #MOUNTPOINT_RELATIVE}.
+             * This works for the local space as well, not only Hub spaces.
+             * </p>
+             */
+            HUB_SPACE_RELATIVE(KnimeUrlType.HUB_SPACE_RELATIVE),
 
             /**
              * knime://knime.mountpoint/
              */
-            MOUNTPOINT_RELATIVE("knime://knime.mountpoint"),
+            MOUNTPOINT_RELATIVE(KnimeUrlType.MOUNTPOINT_RELATIVE),
 
-
-            WORKFLOW_DATA_RELATIVE("knime://knime.workflow.data"),
+            /**
+             * knime://knime.workflow/data/
+             *
+             * <p>
+             * NOTE: While the {@link FSType#RELATIVE_TO_WORKFLOW_DATA_AREA} and the actual
+             * settings value {@link RelativeTo#WORKFLOW_DATA} use {@code "knime.workflow.data"},
+             * the actual {@link KnimeUrlType} has *NO* such identifier/type of the workflow data.
+             *
+             * This is in contrast to the other {@link #Type}s in this class, where their identifier
+             * can be used directly as {@link KnimeUrlType}, as well.
+             * </p>
+             */
+            WORKFLOW_DATA_RELATIVE(KnimeUrlType.WORKFLOW_RELATIVE, "data"),
 
             /**
              * knime://<mount-ID>>/
              */
-            MOUNTPOINT_ABSOLUTE("knime://www.example.com");
+            MOUNTPOINT_ABSOLUTE(KnimeUrlType.MOUNTPOINT_ABSOLUTE);
 
-        private final String m_schemeAndHost;
+        private final String m_authority;
 
-        private Type(final String schemeAndHost) {
-            m_schemeAndHost = schemeAndHost;
+        private final String m_path;
+
+        Type(final KnimeUrlType type) {
+            this(type, null);
+        }
+
+        Type(final KnimeUrlType type, final String path) {
+            m_authority = type.getAuthority();
+            m_path = StringUtils.defaultIfBlank(path, null);
         }
 
         /**
          * Returns the scheme and host of the connection type.
          *
-         * @return the scheme and host of the connection type
+         * @return the scheme and host
+         * @deprecated use {@link #toKnimeURI()} instead
          */
+        @Deprecated(since = "5.10", forRemoval = true)
         public String getSchemeAndHost() {
-            return m_schemeAndHost;
+            final var authority = Objects.requireNonNullElse(m_authority, "www.example.com");
+            return String.format("%s://%s", KnimeUrlType.SCHEME, authority);
+        }
+
+        /**
+         * Starts building a {@link URI} using the {@link URIBuilder}. At this point,
+         * we do not return a fully-built {@link URI} yet, since mountpoint-absolute
+         * KNIME URL/URIs do not have a static authority: it's the dynamic mount ID.
+         *
+         * @return the {@link URIBuilder} for the static KNIME URL/URIs properties
+         * @throws URISyntaxException if building the {@link URI} goes wrong
+         */
+        public URIBuilder buildURI() throws URISyntaxException {
+            final var builder = new URIBuilder().setScheme(KnimeUrlType.SCHEME);
+            if (m_authority != null) {
+                // #setAuthority requires a non-null argument
+                builder.setAuthority(URIAuthority.create(m_authority));
+            }
+            // #setPath can handle nullable arguments
+            return builder.setPath(m_path);
         }
     }
 
     /** KNIME workflow relative connection */
     public static final KNIMEConnection WORKFLOW_RELATIVE_CONNECTION =
-        new KNIMEConnection(Type.WORKFLOW_RELATIVE, "Current workflow", "knime.workflow");
+        new KNIMEConnection(Type.WORKFLOW_RELATIVE, "Current workflow", RelativeTo.WORKFLOW);
 
-    /** KNIME workflow data area relative connection */
-    public static final KNIMEConnection WORKFLOW_DATA_RELATIVE_CONNECTION =
-            new KNIMEConnection(Type.WORKFLOW_DATA_RELATIVE, "Current workflow data area", "knime.workflow.data");
+    /** KNIME mount point relative connection */
+    public static final KNIMEConnection HUB_SPACE_RELATIVE_CONNECTION =
+        new KNIMEConnection(Type.HUB_SPACE_RELATIVE, "Current space", RelativeTo.SPACE);
 
     /** KNIME mount point relative connection */
     public static final KNIMEConnection MOUNTPOINT_RELATIVE_CONNECTION =
-        new KNIMEConnection(Type.MOUNTPOINT_RELATIVE, "Current mountpoint", "knime.mountpoint");
+        new KNIMEConnection(Type.MOUNTPOINT_RELATIVE, "Current mountpoint", RelativeTo.MOUNTPOINT);
+
+    /** KNIME workflow data area relative connection */
+    public static final KNIMEConnection WORKFLOW_DATA_RELATIVE_CONNECTION =
+            new KNIMEConnection(Type.WORKFLOW_DATA_RELATIVE, "Current workflow data area", RelativeTo.WORKFLOW_DATA);
 
     /** Map of all available connections */
     private static final Map<String, KNIMEConnection> CONNECTIONS = new HashMap<>();
     static {
         CONNECTIONS.put(WORKFLOW_RELATIVE_CONNECTION.getId(), WORKFLOW_RELATIVE_CONNECTION);
+        CONNECTIONS.put(HUB_SPACE_RELATIVE_CONNECTION.getId(), HUB_SPACE_RELATIVE_CONNECTION);
         CONNECTIONS.put(MOUNTPOINT_RELATIVE_CONNECTION.getId(), MOUNTPOINT_RELATIVE_CONNECTION);
         CONNECTIONS.put(WORKFLOW_DATA_RELATIVE_CONNECTION.getId(), WORKFLOW_DATA_RELATIVE_CONNECTION);
     }
@@ -139,6 +207,17 @@ public class KNIMEConnection {
 
     /** Identifier of the connection */
     private final String m_key;
+
+    /**
+     * Creates a new instance of {@code KNIMEConnection}.
+     *
+     * @param type type of connection
+     * @param displayName the display name of the connection
+     * @param setting the {@link RelativeTo} settings option
+     */
+    private KNIMEConnection(final Type type, final String displayName, final RelativeTo setting) {
+        this(type, displayName, setting.getSettingsValue());
+    }
 
     /**
      * Creates a new instance of {@code KNIMEConnection}.
@@ -176,6 +255,11 @@ public class KNIMEConnection {
         return m_displayName;
     }
 
+    private static KNIMEConnection createMountpointAbsoluteConnection(final String mountId) {
+        return new KNIMEConnection(Type.MOUNTPOINT_ABSOLUTE, //
+            String.format("%s", StringUtils.abbreviate(mountId, 30)), mountId);
+    }
+
     /**
      * Gets or creates and a new mount point absolute connection based on given mount id.
      *
@@ -183,12 +267,10 @@ public class KNIMEConnection {
      * @return a KNIMEConnection instance
      */
     public static final synchronized KNIMEConnection getOrCreateMountpointAbsoluteConnection(final String mountId) {
-        if (mountId != null && !CONNECTIONS.containsKey(mountId)) {
-            CONNECTIONS.put(mountId, new KNIMEConnection(Type.MOUNTPOINT_ABSOLUTE,
-                String.format("%s", StringUtils.abbreviate(mountId, 30)), mountId));
+        if (mountId == null) {
+            return null;
         }
-
-        return CONNECTIONS.get(mountId);
+        return CONNECTIONS.computeIfAbsent(mountId, KNIMEConnection::createMountpointAbsoluteConnection);
     }
 
     /**
@@ -227,25 +309,46 @@ public class KNIMEConnection {
      * @return the corresponding connection type
      */
     public static KNIMEConnection.Type connectionTypeForHost(final String host) {
-        switch (host) {
-            case "knime.workflow":
-                return KNIMEConnection.Type.WORKFLOW_RELATIVE;
-            case "knime.workflow.data":
-                return KNIMEConnection.Type.WORKFLOW_DATA_RELATIVE;
-            case "knime.mountpoint":
-                return KNIMEConnection.Type.MOUNTPOINT_RELATIVE;
-            default:
-                return KNIMEConnection.Type.MOUNTPOINT_ABSOLUTE;
+        return switch (host) {
+            case "knime.workflow" -> Type.WORKFLOW_RELATIVE;
+            case "knime.space" -> Type.HUB_SPACE_RELATIVE;
+            case "knime.mountpoint" -> Type.MOUNTPOINT_RELATIVE;
+            case "knime.workflow.data" -> Type.WORKFLOW_DATA_RELATIVE;
+            default -> Type.MOUNTPOINT_ABSOLUTE;
+        };
+    }
+
+    /**
+     * Attempts to create a KNIME {@link URI} from the given file system specifier. It uses
+     * the map of cached {@link KNIMEConnection}s internally, but does not modify it.
+     *
+     * All {@link KNIMEConnection}s created in the process are for having a representation
+     * to build the {@link URI} out of. They are not cached/persisted.
+     *
+     * @param specifier the file system specifier, used as authority in the {@link URI}
+     * @return the created {@link URI}, via {@link #toKnimeURI()}
+     * @throws URISyntaxException if building the {@link URI} goes wrong
+     */
+    public static URI createURIFromFileSystemSpecifier(final String specifier) throws URISyntaxException {
+        KNIMEConnection representation;
+        if (connectionExists(specifier)) {
+            representation = getConnection(specifier);
+        } else {
+            final var type = connectionTypeForHost(specifier);
+            representation = new KNIMEConnection(type, specifier, specifier);
         }
+        return representation.toKnimeURI();
     }
 
     /**
      * Returns the scheme and host of the connection type.
      *
      * @return the scheme and host of the connection type
+     * @deprecated use {@link #toKnimeURI()} instead
      */
+    @Deprecated(since = "5.10", forRemoval = true)
     public String getSchemeAndHost() {
-        if (m_type.equals(Type.MOUNTPOINT_ABSOLUTE)) {
+        if (m_type == Type.MOUNTPOINT_ABSOLUTE) {
             return "knime://" + m_key;
         } else {
             return m_type.getSchemeAndHost();
@@ -253,18 +356,33 @@ public class KNIMEConnection {
     }
 
     /**
+     * Returns the {@link URI} built from the file system specifier and the mount ID.
+     * Prefer this over {@link #getSchemeAndHost()}, as {@link Type#WORKFLOW_DATA_RELATIVE}
+     * has a {@code "data"} path that is not returned in the scheme-host-string.
+     *
+     * @return the scheme and host of the connection type
+     * @throws URISyntaxException if building the {@link URI} goes wrong
+     */
+    public URI toKnimeURI() throws URISyntaxException {
+        final var builder = m_type.buildURI();
+        if (m_type == Type.MOUNTPOINT_ABSOLUTE) {
+            builder.setAuthority(URIAuthority.create(m_key));
+        }
+        return builder.build();
+    }
+
+    /**
      * @return whether the mountpoint is connected
      */
     public boolean isConnected() {
         try {
-            return !getType().equals(Type.MOUNTPOINT_ABSOLUTE)
-                || checkMountpointConnected();
-        } catch (final IOException ex) {
+            return getType() != Type.MOUNTPOINT_ABSOLUTE || checkMountpointConnected();
+        } catch (URISyntaxException ex) { // NOSONAR
             return false;
         }
     }
 
-    private boolean checkMountpointConnected() throws IOException {
+    private boolean checkMountpointConnected() throws URISyntaxException {
         CheckUtils.checkState(getType() == Type.MOUNTPOINT_ABSOLUTE, "Mountpoint-absolute required");
 
         if (WorkflowContextUtil.hasWorkflowContext()&& WorkflowContextUtil.isServerContext()) {
@@ -279,7 +397,7 @@ public class KNIMEConnection {
             }
         }
 
-        return MountPointFileSystemAccessService.instance().isAuthenticated(URI.create(getSchemeAndHost()));
+        return MountPointFileSystemAccessService.instance().isAuthenticated(toKnimeURI());
     }
 
     /**

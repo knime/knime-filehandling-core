@@ -53,7 +53,6 @@ import static java.lang.String.format;
 import java.awt.Color;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -147,8 +146,7 @@ final class StatusMessageSwingWorker extends SwingWorkerWithContext<Pair<Color, 
                 KNIMEConnection.getConnection(helper.getSettingsModel().getKnimeMountpointFileSystem());
             if (knimeConnection.getType() == KNIMEConnection.Type.MOUNTPOINT_ABSOLUTE) {
                 final boolean isReadable =
-                    MountPointFileSystemAccessService.instance()
-                        .isReadable(URI.create(knimeConnection.getSchemeAndHost()));
+                    MountPointFileSystemAccessService.instance().isReadable(knimeConnection.toKnimeURI());
                 if (!isReadable) {
                     return mkError("Not connected to Server. Please login in the explorer.");
                 }
