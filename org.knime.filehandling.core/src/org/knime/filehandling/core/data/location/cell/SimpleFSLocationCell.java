@@ -74,7 +74,7 @@ public final class SimpleFSLocationCell extends DataCell implements FSLocationVa
 
     private static final long serialVersionUID = 1L;
 
-    static final DataType TYPE = DataType.getType(SimpleFSLocationCell.class);
+    public static final DataType TYPE = DataType.getType(SimpleFSLocationCell.class);
 
     private final FSLocation m_fsLocation;
 
