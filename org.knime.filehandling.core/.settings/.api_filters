@@ -8,6 +8,14 @@
             </message_arguments>
         </filter>
     </resource>
+    <resource path="src/org/knime/filehandling/core/connections/ItemVersionAware.java" type="org.knime.filehandling.core.connections.ItemVersionAware">
+        <filter comment="Removed usage of `HubItemVersion` which was for-removal since two LTS versions (AP-25387)." id="405901410">
+            <message_arguments>
+                <message_argument value="org.knime.filehandling.core.connections.ItemVersionAware"/>
+                <message_argument value="downloadWorkflowAtVersion(FSPath, HubItemVersion)"/>
+            </message_arguments>
+        </filter>
+    </resource>
     <resource path="src/org/knime/filehandling/core/node/table/reader/GenericAbstractTableReaderNodeFactory.java" type="org.knime.filehandling.core.node.table.reader.GenericAbstractTableReaderNodeFactory">
         <filter comment="(no api, as suggested by class description)" id="338792546">
             <message_arguments>
