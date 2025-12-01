@@ -18,6 +18,7 @@
 		<changelist>-SNAPSHOT</changelist>
 		<feature-branch-extension.branchListProperty>git.branch</feature-branch-extension.branchListProperty>
 		<feature-branch-extension.appendArtifactoryProperties>false</feature-branch-extension.appendArtifactoryProperties>
+		<tycho-dependency-tools-plugin.skip>false</tycho-dependency-tools-plugin.skip>
 		<knime.sonar-env>Sonarcloud</knime.sonar-env>
 		<changelog.baseref>f66bc963</changelog.baseref>
 	</properties>
@@ -150,4 +151,21 @@
 			<url>${knime.tp.p2}</url>
 		</repository>
 	</repositories>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.eclipse.tycho.extras</groupId>
+				<artifactId>tycho-dependency-tools-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>list-dependencies</id>
+						<configuration>
+							<skip>${tycho-dependency-tools-plugin.skip}</skip>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 </project>
