@@ -49,17 +49,13 @@
 package org.knime.filehandling.core.node.table.reader;
 
 import org.knime.core.data.convert.map.ProductionPath;
-import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeDialogPane;
 import org.knime.core.node.NodeSettings;
-import org.knime.core.node.NodeSettingsRO;
-import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.context.NodeCreationConfiguration;
 import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig;
 import org.knime.filehandling.core.node.table.reader.config.StorableMultiTableReadConfig;
 import org.knime.filehandling.core.node.table.reader.paths.SourceSettings;
 import org.knime.filehandling.core.node.table.reader.preview.dialog.AbstractTableReaderNodeDialog;
-import org.knime.filehandling.core.util.SettingsUtils;
 
 /**
  * An abstract implementation of a node factory for table reader nodes that builds on top of
@@ -80,6 +76,9 @@ public abstract class GenericAbstractTableReaderNodeFactory<I, C extends ReaderS
     extends CommonTableReaderNodeFactory<I, SourceSettings<I>, C, T, StorableMultiTableReadConfig<C, T>, V> {
 
     @Override
+    protected abstract SourceSettings<I> createPathSettings(NodeCreationConfiguration nodeCreationConfig);
+
+    @Override
     protected NodeDialogPane createNodeDialogPane(final NodeCreationConfiguration creationConfig) {
         final MultiTableReadFactory<I, C, T> readFactory = createMultiTableReadFactory(createReader());
         final ProductionPathProvider<T> productionPathProvider = createProductionPathProvider();
@@ -98,37 +97,13 @@ public abstract class GenericAbstractTableReaderNodeFactory<I, C extends ReaderS
         final NodeCreationConfiguration creationConfig, final MultiTableReadFactory<I, C, T> readFactory,
         final ProductionPathProvider<T> defaultProductionPathFn);
 
-    final class GenericConfigAndSourceSerializer
-        implements ConfigAndSourceSerializer<I, SourceSettings<I>, C, T, StorableMultiTableReadConfig<C, T>> {
-
-        @Override
-        public void saveSettingsTo(final SourceSettings<I> sourceSettings,
-            final StorableMultiTableReadConfig<C, T> config, final NodeSettingsWO settings) {
-            config.saveInModel(settings);
-            sourceSettings.saveSettingsTo(SettingsUtils.getOrAdd(settings, SettingsUtils.CFG_SETTINGS_TAB));
-        }
-
-        @Override
-        public void validateSettings(final SourceSettings<I> sourceSettings,
-            final StorableMultiTableReadConfig<C, T> config, final NodeSettingsRO settings)
-            throws InvalidSettingsException {
-            config.validate(settings);
-            sourceSettings.validateSettings(settings.getNodeSettings(SettingsUtils.CFG_SETTINGS_TAB));
-        }
-
-        @Override
-        public void loadValidatedSettingsFrom(final SourceSettings<I> sourceSettings,
-            final StorableMultiTableReadConfig<C, T> config, final NodeSettingsRO settings)
-            throws InvalidSettingsException {
-            config.loadInModel(settings);
-            sourceSettings.loadSettingsFrom(settings.getNodeSettings(SettingsUtils.CFG_SETTINGS_TAB));
-        }
-    }
-
     @Override
     protected ConfigAndSourceSerializer<I, SourceSettings<I>, C, T, StorableMultiTableReadConfig<C, T>>
         createSerializer() {
-        return new GenericConfigAndSourceSerializer();
+        return TableReaderNodeModel.createSerializer();
     }
+
+    @Override
+    protected abstract StorableMultiTableReadConfig<C, T> createConfig(NodeCreationConfiguration nodeCreationConfig);
 
 }

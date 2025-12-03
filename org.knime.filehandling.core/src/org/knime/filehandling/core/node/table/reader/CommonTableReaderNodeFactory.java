@@ -83,7 +83,7 @@ import org.knime.filehandling.core.port.FileSystemPortObject;
  */
 public abstract class CommonTableReaderNodeFactory<I, S extends Source<I>, C extends ReaderSpecificConfig<C>, T, //
         M extends MultiTableReadConfig<C, T>, V>
-    extends ConfigurableNodeFactory<TableReaderNodeModel<I, S, C, T, M>> {
+    extends ConfigurableNodeFactory<CommonTableReaderNodeModel<I, S, C, T, M>> {
 
     /** The file system ports group id. */
     protected static final String FS_CONNECT_GRP_ID = "File System Connection";
@@ -179,15 +179,15 @@ public abstract class CommonTableReaderNodeFactory<I, S extends Source<I>, C ext
     protected abstract ConfigAndSourceSerializer<I, S, C, T, M> createSerializer();
 
     @Override
-    public TableReaderNodeModel<I, S, C, T, M> createNodeModel(final NodeCreationConfiguration creationConfig) {
+    public CommonTableReaderNodeModel<I, S, C, T, M> createNodeModel(final NodeCreationConfiguration creationConfig) {
         final var config = createConfig(creationConfig);
         final var pathSettings = createPathSettings(creationConfig);
         final var reader = createMultiTableReader();
         final var serializer = createSerializer();
         final var portConfig = creationConfig.getPortConfig();
         return portConfig.isPresent()
-            ? new TableReaderNodeModel<>(config, pathSettings, reader, serializer, portConfig.get())
-            : new TableReaderNodeModel<>(config, pathSettings, reader, serializer);
+            ? new CommonTableReaderNodeModel<>(config, pathSettings, reader, serializer, portConfig.get())
+            : new CommonTableReaderNodeModel<>(config, pathSettings, reader, serializer);
     }
 
     /**
@@ -250,8 +250,8 @@ public abstract class CommonTableReaderNodeFactory<I, S extends Source<I>, C ext
     }
 
     @Override
-    public final NodeView<TableReaderNodeModel<I, S, C, T, M>> createNodeView(final int viewIndex,
-        final TableReaderNodeModel<I, S, C, T, M> nodeModel) {
+    public final NodeView<CommonTableReaderNodeModel<I, S, C, T, M>> createNodeView(final int viewIndex,
+        final CommonTableReaderNodeModel<I, S, C, T, M> nodeModel) {
         return null;
     }
 
