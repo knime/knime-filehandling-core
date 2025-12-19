@@ -81,7 +81,7 @@ public abstract class AbstractMultiTableWriterNodeFactory<
         D extends AbstractMultiTableWriterNodeDialog<C>> //
     extends ConfigurableNodeFactory<M> {
 
-    private static final String CONNECTION_INPUT_PORT_GRP_NAME = "File System Connection";
+    protected static final String CONNECTION_INPUT_PORT_GRP_NAME = "File System Connection";
 
     private static final String DATA_TABLE_INPUT_PORT_GRP_NAME = "Input Data Table";
 
