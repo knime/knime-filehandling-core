@@ -52,7 +52,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 
-import org.knime.core.util.hub.HubItemVersion;
 import org.knime.core.util.hub.ItemVersion;
 import org.knime.filehandling.core.connections.workflowaware.WorkflowAware;
 import org.knime.filehandling.core.util.TempPathCloseable;
@@ -154,21 +153,6 @@ public interface ItemVersionAware extends WorkflowAware {
      */
     RepositoryItemVersion createRepositoryItemVersion(FSPath itemPath, String title, String description)
         throws IOException;
-
-    /**
-     * Turns a versioned workflow path into a local workflow directory.
-     *
-     * @param workflowToRead The path of the workflow to read.
-     * @param version The version of the workflow to fetch
-     * @return a {@link TempPathCloseable} whose path references the workflow in its local directory shape.
-     * @throws IOException
-     * @deprecated use {@link #downloadWorkflowAtVersion(FSPath, ItemVersion)} instead
-     */
-    @Deprecated(since = "5.5", forRemoval = true)
-    default TempPathCloseable downloadWorkflowAtVersion(final FSPath workflowToRead, final HubItemVersion version)
-        throws IOException {
-        return downloadWorkflowAtVersion(workflowToRead, HubItemVersion.convert(version));
-    }
 
     /**
      * Turns a versioned workflow path into a local workflow directory.
