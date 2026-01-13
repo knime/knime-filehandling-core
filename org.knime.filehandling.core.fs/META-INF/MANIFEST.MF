@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Core NIO file systems that are always present
 Bundle-SymbolicName: org.knime.filehandling.core.fs;singleton:=true
-Bundle-Version: 5.10.0.qualifier
+Bundle-Version: 5.11.0.qualifier
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Bundle-Vendor: KNIME AG, Zurich, Switzerland
 Bundle-ActivationPolicy: lazy
@@ -16,4 +16,5 @@ Require-Bundle: org.knime.filehandling.core;bundle-version="[5.10.0,6.0.0)",
  org.knime.core.workbench;bundle-version="[5.9.0,6.0.0)"
 Automatic-Module-Name: org.knime.filehandling.core.fs
 Export-Package: org.knime.filehandling.core.fs.knime.mountpoint.export,
- org.knime.filehandling.core.fs.knime.relativeto.export
+ org.knime.filehandling.core.fs.knime.relativeto.export,
+ org.knime.filehandling.core.fs.local.fs.export

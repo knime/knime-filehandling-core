@@ -65,7 +65,7 @@ import java.util.Set;
 import org.knime.filehandling.core.connections.FSFileSystem;
 import org.knime.filehandling.core.connections.FSLocationSpec;
 import org.knime.filehandling.core.connections.config.LocalFSConnectionConfig;
-import org.knime.filehandling.core.connections.meta.FSType;
+import org.knime.filehandling.core.fs.local.fs.export.LocalFileSystemConstants;
 
 /**
  *
@@ -75,12 +75,7 @@ final class LocalFileSystem extends FSFileSystem<LocalPath> {
 
     private static final FileSystem PLATFORM_DEFAULT_FS = FileSystems.getDefault();
 
-    /**
-     * The file system type of the local file system.
-     */
-    static final  FSType FS_TYPE = FSType.LOCAL_FS;
-
-    private static final URI BASE_URI = URI.create(FS_TYPE.getTypeId() + ":///");
+    private static final URI BASE_URI = URI.create(LocalFileSystemConstants.FS_TYPE.getTypeId() + ":///");
 
     private final LocalFileSystemProvider m_provider;
 
