@@ -56,6 +56,7 @@ import java.util.Map;
 import org.knime.filehandling.core.connections.FSLocationSpec;
 import org.knime.filehandling.core.connections.config.LocalFSConnectionConfig;
 import org.knime.filehandling.core.connections.meta.FSType;
+import org.knime.filehandling.core.fs.local.fs.export.LocalFileSystemConstants;
 import org.knime.filehandling.core.testing.FSTestInitializerProvider;
 
 /**
