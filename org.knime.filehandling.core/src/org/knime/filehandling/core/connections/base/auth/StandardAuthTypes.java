@@ -59,12 +59,20 @@ public final class StandardAuthTypes {
 
     /**
      * Standard username/password authentication.
+     * @deprecated Use {@link #USER_PASSWORD_V2} instead (WebUI migration)
      */
+    @Deprecated(since = "5.10", forRemoval = true)
     public static final AuthType USER_PASSWORD =
         new AuthType("user_pwd", "Username & password", "Authenticate with username and password.");
 
     /**
-     * .Anonymous access.
+     * Replaces {@link #USER_PASSWORD} for backward compatibility (WebUI migration)
+     */
+    public static final AuthType USER_PASSWORD_V2 =
+        new AuthType("user_pwd_v2", "Credentials", "Authenticate with username and password.");
+
+    /**
+     * Anonymous access.
      */
     public static final AuthType ANONYMOUS = new AuthType("anonymous", "Anonymous", "Anonymous access.");
 

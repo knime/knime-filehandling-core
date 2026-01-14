@@ -51,10 +51,12 @@ package org.knime.filehandling.core.connections.base.auth;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.StringUtils;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.NotConfigurableException;
@@ -197,6 +199,25 @@ public final class AuthSettings {
     }
 
     /**
+     * Retrieves the settings for this auth type from the given parent settings. If settings can be absent in existing
+     * settings and they are absent, an empty optional is returned. Otherwise absent settings lead to an exception.
+     */
+    private static Optional<NodeSettingsRO> getAuthTypeSettingsIfExists(final AuthType curr,
+        final NodeSettingsRO authSettingsParent) throws InvalidSettingsException {
+        final String settingsKey = curr.getSettingsKey();
+        if (!authSettingsParent.containsKey(settingsKey)) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(authSettingsParent.getNodeSettings(settingsKey));
+        } catch (InvalidSettingsException e) {
+            NodeLogger.getLogger(AuthSettings.class).error(
+                String.format("Unexpected type for auth settings for key '%s' (auth type: %s)", settingsKey, curr), e);
+            return Optional.empty();
+        }
+    }
+
+    /**
      * Loads settings from the given {@link NodeSettingsRO} (to be called by the dialog).
      *
      * @param authSettingsParent Parent node for these auth settings.
@@ -212,12 +233,15 @@ public final class AuthSettings {
 
             for (AuthProviderSettings provSettings : m_providerSettings.values()) {
                 final var curr = provSettings.getAuthType();
-                final var provSettingsRO = authSettingsParent.getNodeSettings(curr.getSettingsKey());
 
                 final AuthProviderPanel<?> currPanel =  providerPanels.get(curr);
                 CheckUtils.checkArgument(provSettings == currPanel.getSettings(), "Panel is using different settings.");
-
-                currPanel.loadSettingsForDialog(provSettingsRO, specs);
+                final var provSettingsOpt = getAuthTypeSettingsIfExists(curr, authSettingsParent);
+                if (provSettingsOpt.isEmpty()) {
+                    // no settings stored yet for this provider, skip loading
+                    continue;
+                }
+                currPanel.loadSettingsForDialog(provSettingsOpt.get(), specs);
             }
         } catch (InvalidSettingsException ex) {
             throw new NotConfigurableException(ex.getMessage(), ex);
@@ -240,8 +264,12 @@ public final class AuthSettings {
         load(authSettings);
 
         for (AuthProviderSettings provSettings : m_providerSettings.values()) {
-            provSettings
-                .loadSettingsForModel(authSettings.getNodeSettings(provSettings.getAuthType().getSettingsKey()));
+            final var authSettingsOpt = getAuthTypeSettingsIfExists(provSettings.getAuthType(), authSettings);
+            if (authSettingsOpt.isEmpty()) {
+                // no settings stored yet for this provider, skip loading
+                continue;
+            }
+            provSettings.loadSettingsForModel(authSettingsOpt.get());
         }
 
         updateEnabledness();
@@ -254,11 +282,18 @@ public final class AuthSettings {
      * @throws InvalidSettingsException
      */
     public void validateSettings(final NodeSettingsRO authSettings) throws InvalidSettingsException {
-        m_authType.validateSettings(authSettings);
+        SettingsModelString authTypeModel = m_authType.createCloneWithValidatedValue(authSettings);
+        String activeType = authTypeModel.getStringValue();
 
         for (AuthProviderSettings provSettings : m_providerSettings.values()) {
-            provSettings
-                .validateSettings(authSettings.getNodeSettings(provSettings.getAuthType().getSettingsKey()));
+            final var specificAuthTypeSettings = getAuthTypeSettingsIfExists(provSettings.getAuthType(), authSettings);
+            // settings for non-active auth types may be missing
+            if (specificAuthTypeSettings.isEmpty()) {
+                CheckUtils.checkSetting(!provSettings.getAuthType().getSettingsKey().equals(activeType),
+                    String.format("Settings for the selected auth type %s are missing.", activeType));
+                continue;
+            }
+            provSettings.validateSettings(specificAuthTypeSettings.get());
         }
     }
 
