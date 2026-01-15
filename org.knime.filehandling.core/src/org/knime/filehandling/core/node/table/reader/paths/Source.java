@@ -60,6 +60,7 @@ import org.knime.filehandling.core.node.table.reader.preview.dialog.GenericItemA
  *
  * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
  * @param <I> the type of source items the item accessor returns
+ * @since 5.10
  */
 public interface Source<I> {
 
