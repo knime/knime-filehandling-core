@@ -103,6 +103,7 @@ public class KNIMEConnection {
              * NOTE: Internally, this is handled as a synonym of {@link #MOUNTPOINT_RELATIVE}.
              * This works for the local space as well, not only Hub spaces.
              * </p>
+             * @since 5.10
              */
             HUB_SPACE_RELATIVE(KnimeUrlType.HUB_SPACE_RELATIVE),
 
@@ -162,6 +163,7 @@ public class KNIMEConnection {
          *
          * @return the {@link URIBuilder} for the static KNIME URL/URIs properties
          * @throws URISyntaxException if building the {@link URI} goes wrong
+         * @since 5.10
          */
         public URIBuilder buildURI() throws URISyntaxException {
             final var builder = new URIBuilder().setScheme(KnimeUrlType.SCHEME);

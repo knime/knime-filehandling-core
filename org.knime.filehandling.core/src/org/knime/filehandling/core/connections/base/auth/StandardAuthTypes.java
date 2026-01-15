@@ -67,6 +67,7 @@ public final class StandardAuthTypes {
 
     /**
      * Replaces {@link #USER_PASSWORD} for backward compatibility (WebUI migration)
+     * @since 5.10
      */
     public static final AuthType USER_PASSWORD_V2 =
         new AuthType("user_pwd_v2", "Credentials", "Authenticate with username and password.");
