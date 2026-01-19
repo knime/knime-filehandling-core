@@ -286,14 +286,13 @@ public final class AuthSettings {
         String activeType = authTypeModel.getStringValue();
 
         for (AuthProviderSettings provSettings : m_providerSettings.values()) {
-            final var specificAuthTypeSettings = getAuthTypeSettingsIfExists(provSettings.getAuthType(), authSettings);
-            // settings for non-active auth types may be missing
-            if (specificAuthTypeSettings.isEmpty()) {
-                CheckUtils.checkSetting(!provSettings.getAuthType().getSettingsKey().equals(activeType),
-                    String.format("Settings for the selected auth type %s are missing.", activeType));
-                continue;
+            final var authType = provSettings.getAuthType();
+            if (authType.getSettingsKey().equals(activeType)) {
+                final var specificAuthTypeSettings =
+                    getAuthTypeSettingsIfExists(authType, authSettings).orElseThrow(() -> new InvalidSettingsException(
+                        String.format("Settings for the selected auth type %s are missing.", activeType)));
+                provSettings.validateSettings(specificAuthTypeSettings);
             }
-            provSettings.validateSettings(specificAuthTypeSettings.get());
         }
     }
 
