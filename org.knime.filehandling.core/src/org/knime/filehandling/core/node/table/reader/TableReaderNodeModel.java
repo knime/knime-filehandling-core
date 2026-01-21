@@ -112,7 +112,7 @@ public class TableReaderNodeModel<I, C extends ReaderSpecificConfig<C>, T>
      */
     protected TableReaderNodeModel(final StorableMultiTableReadConfig<C, T> config,
         final SourceSettings<I> pathSettingsModel, final MultiTableReader<I, C, T> tableReader) {
-        super(config, pathSettingsModel, tableReader, createSerializer());
+        super(() -> config, pathSettingsModel, tableReader, createSerializer());
     }
 
     /**
@@ -126,7 +126,7 @@ public class TableReaderNodeModel<I, C extends ReaderSpecificConfig<C>, T>
     protected TableReaderNodeModel(final StorableMultiTableReadConfig<C, T> config,
         final SourceSettings<I> pathSettingsModel, final MultiTableReader<I, C, T> tableReader,
         final PortsConfiguration portsConfig) {
-        super(config, pathSettingsModel, tableReader, createSerializer(), portsConfig);
+        super(() -> config, pathSettingsModel, tableReader, createSerializer(), portsConfig);
     }
 
 }
