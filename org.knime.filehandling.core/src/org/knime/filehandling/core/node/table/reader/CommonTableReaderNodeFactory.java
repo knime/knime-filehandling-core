@@ -49,6 +49,7 @@
 package org.knime.filehandling.core.node.table.reader;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.knime.core.data.convert.map.ProducerRegistry;
 import org.knime.core.node.BufferedDataTable;
@@ -180,14 +181,14 @@ public abstract class CommonTableReaderNodeFactory<I, S extends Source<I>, C ext
 
     @Override
     public CommonTableReaderNodeModel<I, S, C, T, M> createNodeModel(final NodeCreationConfiguration creationConfig) {
-        final var config = createConfig(creationConfig);
+        final Supplier<M> configCreator = () -> createConfig(creationConfig);
         final var pathSettings = createPathSettings(creationConfig);
         final var reader = createMultiTableReader();
         final var serializer = createSerializer();
         final var portConfig = creationConfig.getPortConfig();
         return portConfig.isPresent()
-            ? new CommonTableReaderNodeModel<>(config, pathSettings, reader, serializer, portConfig.get())
-            : new CommonTableReaderNodeModel<>(config, pathSettings, reader, serializer);
+            ? new CommonTableReaderNodeModel<>(configCreator, pathSettings, reader, serializer, portConfig.get())
+            : new CommonTableReaderNodeModel<>(configCreator, pathSettings, reader, serializer);
     }
 
     /**
