@@ -99,7 +99,7 @@ public class CommonTableReaderNodeModel<I, S extends Source<I>, C extends Reader
 
     private final M m_config;
 
-    private final S m_sourceSettings;
+    private final S m_source;
 
     private final NodeModelStatusConsumer m_statusConsumer =
         new NodeModelStatusConsumer(EnumSet.of(MessageType.ERROR, MessageType.WARNING));
@@ -124,7 +124,7 @@ public class CommonTableReaderNodeModel<I, S extends Source<I>, C extends Reader
         final MultiTableReader<I, C, T> tableReader, final ConfigAndSourceSerializer<I, S, C, T, M> serializer) {
         super(0, 1);
         m_config = config;
-        m_sourceSettings = pathSettingsModel;
+        m_source = pathSettingsModel;
         m_tableReader = tableReader;
         m_serializer = serializer;
     }
@@ -143,18 +143,18 @@ public class CommonTableReaderNodeModel<I, S extends Source<I>, C extends Reader
         final PortsConfiguration portsConfig) {
         super(portsConfig.getInputPorts(), portsConfig.getOutputPorts());
         m_config = config;
-        m_sourceSettings = pathSettingsModel;
+        m_source = pathSettingsModel;
         m_tableReader = tableReader;
         m_serializer = serializer;
     }
 
     @Override
     protected PortObjectSpec[] configure(final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
-        m_sourceSettings.configureInModel(inSpecs, m_statusConsumer);
+        getSource().configureInModel(inSpecs, m_statusConsumer);
         m_statusConsumer.setWarningsIfRequired(this::setWarningMessage);
         if (m_config.hasTableSpecConfig()) {
             if (m_config.getTableSpecConfig().isConfiguredWith(m_config.getConfigID(),
-                m_sourceSettings.getSourceIdentifier())) {
+                getSource().getSourceIdentifier())) {
                 return new PortObjectSpec[]{m_config.getTableSpecConfig().getDataTableSpec()};
             }
             setWarningMessage(
@@ -165,9 +165,9 @@ public class CommonTableReaderNodeModel<I, S extends Source<I>, C extends Reader
 
     @Override
     protected PortObject[] execute(final PortObject[] inObjects, final ExecutionContext exec) throws Exception {
-        try (final GenericItemAccessor<I> accessor = m_sourceSettings.createItemAccessor()) {
+        try (final GenericItemAccessor<I> accessor = getSource().createItemAccessor()) {
             final List<I> paths = getPaths(accessor);
-            final SourceGroup<I> sourceGroup = new DefaultSourceGroup<>(m_sourceSettings.getSourceIdentifier(), paths);
+            final SourceGroup<I> sourceGroup = new DefaultSourceGroup<>(getSource().getSourceIdentifier(), paths);
             return new PortObject[]{m_tableReader.readTable(sourceGroup, m_config, exec)};
         }
     }
@@ -175,9 +175,9 @@ public class CommonTableReaderNodeModel<I, S extends Source<I>, C extends Reader
     @Override
     public PortObjectSpec[] computeFinalOutputSpecs(final StreamableOperatorInternals internals,
         final PortObjectSpec[] inSpecs) throws InvalidSettingsException {
-        try (final GenericItemAccessor<I> accessor = m_sourceSettings.createItemAccessor()) {
+        try (final GenericItemAccessor<I> accessor = getSource().createItemAccessor()) {
             final List<I> items = getPaths(accessor);
-            final SourceGroup<I> sourceGroup = new DefaultSourceGroup<>(m_sourceSettings.getSourceIdentifier(), items);
+            final SourceGroup<I> sourceGroup = new DefaultSourceGroup<>(getSource().getSourceIdentifier(), items);
             return new PortObjectSpec[]{m_tableReader.createTableSpec(sourceGroup, m_config)};
         } catch (IOException ex) {
             throw new InvalidSettingsException(ex);
@@ -191,11 +191,11 @@ public class CommonTableReaderNodeModel<I, S extends Source<I>, C extends Reader
             @Override
             public void runFinal(final PortInput[] inputs, final PortOutput[] outputs, final ExecutionContext exec)
                 throws Exception {
-                try (final GenericItemAccessor<I> accessor = m_sourceSettings.createItemAccessor()) {
+                try (final GenericItemAccessor<I> accessor = getSource().createItemAccessor()) {
                     final List<I> paths = getPaths(accessor);
                     final RowOutput output = (RowOutput)outputs[0];
                     final SourceGroup<I> sourceGroup =
-                        new DefaultSourceGroup<>(m_sourceSettings.getSourceIdentifier(), paths);
+                        new DefaultSourceGroup<>(getSource().getSourceIdentifier(), paths);
                     m_tableReader.fillRowOutput(sourceGroup, m_config, output, exec);
                 }
             }
@@ -231,17 +231,17 @@ public class CommonTableReaderNodeModel<I, S extends Source<I>, C extends Reader
 
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) {
-        m_serializer.saveSettingsTo(m_sourceSettings, m_config, settings);
+        m_serializer.saveSettingsTo(m_source, m_config, settings);
     }
 
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_serializer.validateSettings(m_sourceSettings, m_config, settings);
+        m_serializer.validateSettings(m_source, m_config, settings);
     }
 
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_serializer.loadValidatedSettingsFrom(m_sourceSettings, m_config, settings);
+        m_serializer.loadValidatedSettingsFrom(m_source, m_config, settings);
     }
 
     @Override
@@ -256,6 +256,15 @@ public class CommonTableReaderNodeModel<I, S extends Source<I>, C extends Reader
      */
     protected final M getConfig() {
         return m_config;
+    }
+
+    /**
+     * Returns the source. Overwrite this method if the internal source handling should be adjusted.
+     *
+     * @return the source settings to use
+     */
+    protected Source<I> getSource() {
+        return m_source;
     }
 
 }
