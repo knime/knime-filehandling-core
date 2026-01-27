@@ -60,6 +60,7 @@ import org.knime.filehandling.core.node.table.reader.config.ReaderSpecificConfig
 import org.knime.filehandling.core.node.table.reader.config.StorableMultiTableReadConfig;
 import org.knime.filehandling.core.node.table.reader.paths.Source;
 import org.knime.filehandling.core.node.table.reader.paths.SourceSettings;
+import org.knime.filehandling.core.util.SettingsUtils;
 
 /**
  * Used to provide backwards compatibility for nodes based on {@link CommonTableReaderNodeModel} that previously used a
@@ -140,7 +141,8 @@ public class BackwardsCompatibleCommonTableReaderNodeModel<I, S extends Source<I
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
         m_useLegacySourceSettings = m_isLegacySettingsPredicate.test(settings);
         if (m_useLegacySourceSettings) {
-            m_legacySourceSettings.validateSettings(settings);
+            final var legacySettings = settings.getNodeSettings(SettingsUtils.CFG_SETTINGS_TAB);
+            m_legacySourceSettings.validateSettings(legacySettings);
             getConfig().validate(settings);
         } else {
             super.validateSettings(settings);
@@ -152,7 +154,8 @@ public class BackwardsCompatibleCommonTableReaderNodeModel<I, S extends Source<I
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
         m_useLegacySourceSettings = m_isLegacySettingsPredicate.test(settings);
         if (m_useLegacySourceSettings) {
-            m_legacySourceSettings.loadSettingsFrom(settings);
+            final var legacySettings = settings.getNodeSettings(SettingsUtils.CFG_SETTINGS_TAB);
+            m_legacySourceSettings.loadSettingsFrom(legacySettings);
             getConfig().loadInModel(settings);
         } else {
             super.loadValidatedSettingsFrom(settings);
@@ -162,7 +165,7 @@ public class BackwardsCompatibleCommonTableReaderNodeModel<I, S extends Source<I
     @Override
     protected void saveSettingsTo(final NodeSettingsWO settings) {
         if (m_useLegacySourceSettings) {
-            m_legacySourceSettings.saveSettingsTo(settings);
+            m_legacySourceSettings.saveSettingsTo(SettingsUtils.getOrAdd(settings, SettingsUtils.CFG_SETTINGS_TAB));
             getConfig().saveInModel(settings);
         } else {
             super.saveSettingsTo(settings);
