@@ -107,7 +107,7 @@ public class BackwardsCompatibleCommonTableReaderNodeModel<I, S extends Source<I
      * @param isLegacySettingsPredicate a method that returns true for all states of the settings before node parameters
      *            have been introduced and false for all states after that.
      */
-    protected BackwardsCompatibleCommonTableReaderNodeModel(final M config, final S pathSettingsModel,
+    public BackwardsCompatibleCommonTableReaderNodeModel(final M config, final S pathSettingsModel,
         final MultiTableReader<I, C, T> tableReader, final ConfigAndSourceSerializer<I, S, C, T, M> serializer,
         final SourceSettings<I> legacySourceSettings, final Predicate<NodeSettingsRO> isLegacySettingsPredicate) {
         super(config, pathSettingsModel, tableReader, serializer);
@@ -127,7 +127,7 @@ public class BackwardsCompatibleCommonTableReaderNodeModel<I, S extends Source<I
      * @param isLegacySettingsPredicate a method that returns true for all states of the settings before node parameters
      *            have been introduced and false for all states after that.
      */
-    protected BackwardsCompatibleCommonTableReaderNodeModel(final M config, final S pathSettingsModel,
+    public BackwardsCompatibleCommonTableReaderNodeModel(final M config, final S pathSettingsModel,
         final MultiTableReader<I, C, T> tableReader, final ConfigAndSourceSerializer<I, S, C, T, M> serializer,
         final PortsConfiguration portsConfig, final SourceSettings<I> legacySourceSettings,
         final Predicate<NodeSettingsRO> isLegacySettingsPredicate) {
