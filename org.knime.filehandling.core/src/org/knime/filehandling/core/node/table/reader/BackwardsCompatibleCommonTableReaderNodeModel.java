@@ -49,6 +49,7 @@
 package org.knime.filehandling.core.node.table.reader;
 
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
@@ -100,7 +101,7 @@ public class BackwardsCompatibleCommonTableReaderNodeModel<I, S extends Source<I
     /**
      * Constructs a node model with no inputs and one output.
      *
-     * @param config storing the user settings
+     * @param configCreator creating the config storing the user settings
      * @param pathSettingsModel storing the paths selected by the user
      * @param tableReader reader for reading tables
      * @param serializer serializer for the source and config
@@ -108,10 +109,10 @@ public class BackwardsCompatibleCommonTableReaderNodeModel<I, S extends Source<I
      * @param isLegacySettingsPredicate a method that returns true for all states of the settings before node parameters
      *            have been introduced and false for all states after that.
      */
-    public BackwardsCompatibleCommonTableReaderNodeModel(final M config, final S pathSettingsModel,
+    public BackwardsCompatibleCommonTableReaderNodeModel(final Supplier<M> configCreator, final S pathSettingsModel,
         final MultiTableReader<I, C, T> tableReader, final ConfigAndSourceSerializer<I, S, C, T, M> serializer,
         final SourceSettings<I> legacySourceSettings, final Predicate<NodeSettingsRO> isLegacySettingsPredicate) {
-        super(config, pathSettingsModel, tableReader, serializer);
+        super(configCreator, pathSettingsModel, tableReader, serializer);
         m_legacySourceSettings = legacySourceSettings;
         m_isLegacySettingsPredicate = isLegacySettingsPredicate;
     }
@@ -119,7 +120,7 @@ public class BackwardsCompatibleCommonTableReaderNodeModel<I, S extends Source<I
     /**
      * Constructs a node model with the inputs and outputs specified in the passed {@link PortsConfiguration}.
      *
-     * @param config storing the user settings
+     * @param configCreator creating the config storing the user settings
      * @param pathSettingsModel storing the paths selected by the user
      * @param tableReader reader for reading tables
      * @param serializer serializer for the source and config
@@ -128,11 +129,11 @@ public class BackwardsCompatibleCommonTableReaderNodeModel<I, S extends Source<I
      * @param isLegacySettingsPredicate a method that returns true for all states of the settings before node parameters
      *            have been introduced and false for all states after that.
      */
-    public BackwardsCompatibleCommonTableReaderNodeModel(final M config, final S pathSettingsModel,
+    public BackwardsCompatibleCommonTableReaderNodeModel(final Supplier<M> configCreator, final S pathSettingsModel,
         final MultiTableReader<I, C, T> tableReader, final ConfigAndSourceSerializer<I, S, C, T, M> serializer,
         final PortsConfiguration portsConfig, final SourceSettings<I> legacySourceSettings,
         final Predicate<NodeSettingsRO> isLegacySettingsPredicate) {
-        super(config, pathSettingsModel, tableReader, serializer, portsConfig);
+        super(configCreator, pathSettingsModel, tableReader, serializer, portsConfig);
         m_legacySourceSettings = legacySourceSettings;
         m_isLegacySettingsPredicate = isLegacySettingsPredicate;
     }

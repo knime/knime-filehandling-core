@@ -52,6 +52,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
@@ -97,7 +98,9 @@ public class CommonTableReaderNodeModel<I, S extends Source<I>, C extends Reader
 
     static final int FS_INPUT_PORT = 0;
 
-    private final M m_config;
+    private final Supplier<M> m_configCreator;
+
+    private M m_config;
 
     private final S m_source;
 
@@ -115,15 +118,16 @@ public class CommonTableReaderNodeModel<I, S extends Source<I>, C extends Reader
     /**
      * Constructs a node model with no inputs and one output.
      *
-     * @param config storing the user settings
+     * @param configCreator for generating the config storing the user settings
      * @param pathSettingsModel storing the paths selected by the user
      * @param tableReader reader for reading tables
      * @param serializer serializer for the source and config
      */
-    protected CommonTableReaderNodeModel(final M config, final S pathSettingsModel,
+    protected CommonTableReaderNodeModel(final Supplier<M> configCreator, final S pathSettingsModel,
         final MultiTableReader<I, C, T> tableReader, final ConfigAndSourceSerializer<I, S, C, T, M> serializer) {
         super(0, 1);
-        m_config = config;
+        m_configCreator = configCreator;
+        m_config = m_configCreator.get();
         m_source = pathSettingsModel;
         m_tableReader = tableReader;
         m_serializer = serializer;
@@ -138,11 +142,12 @@ public class CommonTableReaderNodeModel<I, S extends Source<I>, C extends Reader
      * @param serializer serializer for the source and config
      * @param portsConfig determines the in and outports.
      */
-    protected CommonTableReaderNodeModel(final M config, final S pathSettingsModel,
+    protected CommonTableReaderNodeModel(final Supplier<M> configCreator, final S pathSettingsModel,
         final MultiTableReader<I, C, T> tableReader, final ConfigAndSourceSerializer<I, S, C, T, M> serializer,
         final PortsConfiguration portsConfig) {
         super(portsConfig.getInputPorts(), portsConfig.getOutputPorts());
-        m_config = config;
+        m_configCreator = configCreator;
+        m_config = m_configCreator.get();
         m_source = pathSettingsModel;
         m_tableReader = tableReader;
         m_serializer = serializer;
@@ -236,6 +241,7 @@ public class CommonTableReaderNodeModel<I, S extends Source<I>, C extends Reader
 
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
+        m_config = m_configCreator.get();
         m_serializer.validateSettings(m_source, m_config, settings);
     }
 
