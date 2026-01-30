@@ -241,12 +241,12 @@ public class CommonTableReaderNodeModel<I, S extends Source<I>, C extends Reader
 
     @Override
     protected void validateSettings(final NodeSettingsRO settings) throws InvalidSettingsException {
-        m_config = m_configCreator.get();
         m_serializer.validateSettings(m_source, m_config, settings);
     }
 
     @Override
     protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
+        m_config = m_configCreator.get();
         m_serializer.loadValidatedSettingsFrom(m_source, m_config, settings);
     }
 
