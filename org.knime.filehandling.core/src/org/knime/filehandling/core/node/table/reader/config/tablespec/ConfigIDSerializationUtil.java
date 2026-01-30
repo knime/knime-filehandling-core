@@ -57,7 +57,7 @@ import org.knime.filehandling.core.node.table.reader.config.tablespec.ConfigIDSe
  * Utility methods for saving and loading ConfigIDs.
  *
  * @author Paul Baernreuther, KNIME GmbH, Konstanz, Germany
- * @since 5.10
+ * @since 5.11
  */
 public class ConfigIDSerializationUtil {
 
