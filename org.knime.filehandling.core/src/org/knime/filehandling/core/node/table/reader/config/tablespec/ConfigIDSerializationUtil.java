@@ -44,61 +44,60 @@
  * ---------------------------------------------------------------------
  *
  * History
- *   Feb 9, 2021 (Adrian Nembach, KNIME GmbH, Konstanz, Germany): created
+ *   Jan 26, 2026 (paulbaernreuther): created
  */
 package org.knime.filehandling.core.node.table.reader.config.tablespec;
 
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
+import org.knime.filehandling.core.node.table.reader.config.tablespec.ConfigIDSerializer.EmptyConfigID;
 
 /**
- * Helper class for serializing {@link ConfigID ConfigIDs}.<br>
- * It provides backwards compatible loading and saving.
+ * Utility methods for saving and loading ConfigIDs.
  *
- * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
+ * @author Paul Baernreuther, KNIME GmbH, Konstanz, Germany
+ * @since 5.11
  */
-final class ConfigIDSerializer {
+public class ConfigIDSerializationUtil {
 
-    private static final String CFG_CONFIG_ID = "config_id";
-
-    private final ConfigIDLoader m_configIDLoader;
-
-    ConfigIDSerializer(final ConfigIDLoader configIDLoader) {
-        m_configIDLoader = configIDLoader;
-    }
-
-    static void saveID(final ConfigID id, final NodeSettingsWO topLevelSettings) {
-        ConfigIDSerializationUtil.saveID(CFG_CONFIG_ID, id, topLevelSettings);
-    }
-
-    ConfigID loadID(final NodeSettingsRO settings) throws InvalidSettingsException {
-        return ConfigIDSerializationUtil.loadID(CFG_CONFIG_ID, m_configIDLoader, settings);
+    private ConfigIDSerializationUtil() {
+        // prevent instantiation
     }
 
     /**
-     * Special configID for loading old (pre 4.4) settings.<br>
-     * Package private for testing purposes, DON'T USE this class FOR ANYTHING ELSE.
+     * Save the given {@link ConfigID} to the provided {@link NodeSettingsWO}.
      *
-     * @author Adrian Nembach, KNIME GmbH, Konstanz, Germany
+     * @param key the key under which the ConfigID is stored
+     * @param id the ConfigID to save
+     * @param nodeSettings the NodeSettingsWO to save to
      */
-    enum EmptyConfigID implements ConfigID {
-
-            INSTANCE;
-
-        @Override
-        public void save(final NodeSettingsWO settings) {
-            throw new IllegalStateException(
-                "EmptyConfigID only exist for backwards compatibility and should be handled differently.");
+    public static void saveID(final String key, final ConfigID id, final NodeSettingsWO nodeSettings) {
+        if (id == EmptyConfigID.INSTANCE) {
+            // the TableSpecConfig being serialized was loaded from an old workflow and therefore has no ConfigID
+            // this is done for backwards compatibility
+        } else {
+            id.save(nodeSettings.addNodeSettings(key));
         }
-
-        @Override
-        public boolean isCompatible(final ConfigID configID) {
-            // Before 4.4.0, there was no ConfigID, and this ConfigID is loaded instead
-            // In order to avoid warnings on all nodes created pre 4.4.0, this ConfigID needs to be compatible
-            // with any other ConfigID.
-            return configID != null;
-        }
-
     }
+
+    /**
+     * Load the {@link ConfigID} from the provided {@link NodeSettingsRO}.
+     *
+     * @param key the key under which the ConfigID is stored
+     * @param configIdLoader the loader to create the ConfigID from settings
+     * @param settings the NodeSettingsRO to load from
+     * @return the loaded ConfigID
+     * @throws InvalidSettingsException if loading fails
+     */
+    public static ConfigID loadID(final String key, final ConfigIDLoader configIdLoader, final NodeSettingsRO settings)
+        throws InvalidSettingsException {
+        if (settings.containsKey(key)) {
+            return configIdLoader.createFromSettings(settings.getNodeSettings(key));
+        } else {
+            // the node was last saved before 4.4 -> no config id is available therefore we return the empty config id
+            return EmptyConfigID.INSTANCE;
+        }
+    }
+
 }
