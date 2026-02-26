@@ -103,6 +103,9 @@ final class FilterVisitor extends SimpleFileVisitor<Path> {
 
     @Override
     public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+        if (Thread.currentThread().isInterrupted()) {
+            return FileVisitResult.TERMINATE;
+        }
         final FileVisitResult result = super.visitFile(file, attrs);
         // also called for directories (if max depth is hit by Files.walkFileTree) for these directories
         // #preVisitDirectory is not being invoked
@@ -140,6 +143,9 @@ final class FilterVisitor extends SimpleFileVisitor<Path> {
 
     @Override
     public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
+        if (Thread.currentThread().isInterrupted()) {
+            return FileVisitResult.TERMINATE;
+        }
         super.preVisitDirectory(dir, attrs);
         m_visitedFolders++;
         // the root directory is ignored

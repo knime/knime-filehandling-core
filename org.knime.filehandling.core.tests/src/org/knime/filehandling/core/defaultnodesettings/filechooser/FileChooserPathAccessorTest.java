@@ -49,6 +49,7 @@
 package org.knime.filehandling.core.defaultnodesettings.filechooser;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -224,6 +225,33 @@ public class FileChooserPathAccessorTest {
             m_folderLink, m_folderLinkToContentFile, m_ordinaryFile);
 
         WorkflowTestUtil.shutdownWorkflowManager(workflowManager);
+    }
+
+    /**
+     * Tests that {@link FileChooserPathAccessor#getFSPaths} throws an {@link IOException} (wrapping a
+     * {@code CanceledExecutionException}) when the calling thread has already been interrupted before the call, and
+     * that the interrupt flag is restored on the thread after the exception is thrown.
+     *
+     * @throws IOException expected to be thrown by getFSPaths
+     * @throws InvalidSettingsException not thrown
+     */
+    @Test(expected = IOException.class)
+    public void testGetFSPathsThrowsWhenThreadInterrupted() throws IOException, InvalidSettingsException {
+        final WorkflowManager workflowManager = WorkflowTestUtil.createAndLoadDummyWorkflow(m_tempDir);
+        when(m_portsConfig.getInputPortLocation()).thenReturn(Collections.emptyMap());
+        final SettingsModelReaderFileChooser settingsModel = new SettingsModelReaderFileChooser("test", m_portsConfig,
+            "foobar", EnumConfig.supportAll(FilterMode.FILES_IN_FOLDERS), EnumSet.of(FSCategory.LOCAL));
+        settingsModel.setLocation(new FSLocation(FSCategory.LOCAL, m_links.toAbsolutePath().toString()));
+
+        Thread.currentThread().interrupt();
+        try (FileChooserPathAccessor accessor = new FileChooserPathAccessor(settingsModel, Optional.empty())) {
+            accessor.getFSPaths(s -> {}); // must throw IOException
+        } finally {
+            // The interrupt flag should have been re-set by getFSPaths before rethrowing; clear it for other tests
+            assertTrue("Thread interrupt flag should be restored after cancellation",
+                Thread.interrupted());
+            WorkflowTestUtil.shutdownWorkflowManager(workflowManager);
+        }
     }
 
     private static void testGetFSPathsBehavior(final SettingsModelReaderFileChooser settingsModel,
