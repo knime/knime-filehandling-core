@@ -48,8 +48,8 @@
  */
 package org.knime.filehandling.core.defaultnodesettings.filechooser;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -57,10 +57,11 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.knime.core.node.CanceledExecutionException;
 import org.knime.filehandling.core.defaultnodesettings.filtermode.FileAndFolderFilter;
 import org.knime.filehandling.core.defaultnodesettings.filtermode.FilterOptionsSettings;
 
@@ -81,6 +82,8 @@ public class FilterVisitorCancellationTest {
 
     private FilterVisitor m_visitor;
 
+    private AtomicBoolean m_isCanceled = new AtomicBoolean();
+
     /**
      * Creates a temporary directory and a file inside it, reads their attributes, and constructs a
      * {@link FilterVisitor} with default (permissive) filter settings.
@@ -94,68 +97,63 @@ public class FilterVisitorCancellationTest {
         m_fileAttrs = Files.readAttributes(m_file, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
         m_dirAttrs = Files.readAttributes(m_tempDir, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
         final FileAndFolderFilter filter = new FileAndFolderFilter(m_tempDir, new FilterOptionsSettings());
-        m_visitor = new FilterVisitor(filter, true, true, true);
-    }
-
-    /**
-     * Clears the interrupt flag after each test so later tests are not affected.
-     */
-    @After
-    public void clearInterruptFlag() {
-        Thread.interrupted(); // clears flag
+        m_isCanceled.set(false);
+        m_visitor = new FilterVisitor(filter, true, true, true, () -> {
+            if (m_isCanceled.get()) {
+                throw new CanceledExecutionException("Visit canceled");
+            }
+        });
     }
 
     /**
      * When the current thread is interrupted, {@link FilterVisitor#visitFile} must return
      * {@link FileVisitResult#TERMINATE} immediately without processing the file.
-     *
-     * @throws IOException not thrown
      */
     @Test
-    public void testVisitFileTerminatesWhenInterrupted() throws IOException {
-        Thread.currentThread().interrupt();
-        final FileVisitResult result = m_visitor.visitFile(m_file, m_fileAttrs);
-        assertEquals("visitFile should return TERMINATE when thread is interrupted",
-            FileVisitResult.TERMINATE, result);
+    public void testVisitFileTerminatesWhenInterrupted() {
+        m_isCanceled.set(true);
+        assertThatThrownBy(() -> m_visitor.visitFile(m_file, m_fileAttrs))
+            .isInstanceOf(IOException.class)
+            .cause()
+            .isInstanceOf(CanceledExecutionException.class)
+            .hasMessage("Visit canceled");
     }
 
     /**
      * When the current thread is interrupted, {@link FilterVisitor#preVisitDirectory} must return
      * {@link FileVisitResult#TERMINATE} immediately without descending into the directory.
-     *
-     * @throws IOException not thrown
      */
     @Test
-    public void testPreVisitDirectoryTerminatesWhenInterrupted() throws IOException {
-        Thread.currentThread().interrupt();
-        final FileVisitResult result = m_visitor.preVisitDirectory(m_tempDir, m_dirAttrs);
-        assertEquals("preVisitDirectory should return TERMINATE when thread is interrupted",
-            FileVisitResult.TERMINATE, result);
+    public void testPreVisitDirectoryTerminatesWhenInterrupted() {
+        m_isCanceled.set(true);
+        assertThatThrownBy(() -> m_visitor.preVisitDirectory(m_tempDir, m_dirAttrs))
+            .isInstanceOf(IOException.class)
+            .cause()
+            .isInstanceOf(CanceledExecutionException.class)
+            .hasMessage("Visit canceled");
     }
 
     /**
      * When the thread is NOT interrupted, {@link FilterVisitor#visitFile} must not return
      * {@link FileVisitResult#TERMINATE} — the walk should proceed normally.
      *
-     * @throws IOException not thrown
+     * @throws IOException expected not thrown
      */
     @Test
     public void testVisitFileContinuesWhenNotInterrupted() throws IOException {
         final FileVisitResult result = m_visitor.visitFile(m_file, m_fileAttrs);
-        assertNotEquals("visitFile should not return TERMINATE when thread is not interrupted",
-            FileVisitResult.TERMINATE, result);
+        assertThat(result).isNotEqualTo(FileVisitResult.TERMINATE);
     }
 
     /**
      * When the thread is NOT interrupted, {@link FilterVisitor#preVisitDirectory} must not return
      * {@link FileVisitResult#TERMINATE} — the walk should proceed normally.
      *
-     * @throws IOException not thrown
+     * @throws IOException expected not thrown
      */
     @Test
     public void testPreVisitDirectoryContinuesWhenNotInterrupted() throws IOException {
         final FileVisitResult result = m_visitor.preVisitDirectory(m_tempDir, m_dirAttrs);
-        assertNotEquals("preVisitDirectory should not return TERMINATE when thread is not interrupted",
-            FileVisitResult.TERMINATE, result);
+        assertThat(result).isNotEqualTo(FileVisitResult.TERMINATE);
     }
 }

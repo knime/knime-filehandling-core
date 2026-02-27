@@ -51,6 +51,7 @@ package org.knime.filehandling.core.defaultnodesettings.filechooser;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.knime.core.node.CanceledExecutionException.CancelChecker;
 import org.knime.filehandling.core.connections.FSConnection;
 import org.knime.filehandling.core.connections.FSPath;
 
@@ -76,10 +77,22 @@ public final class FileChooserPathAccessor extends AbstractFileChooserPathAccess
      */
     public FileChooserPathAccessor(final AbstractSettingsModelFileChooser<?> settings,
         final Optional<FSConnection> portObjectConnection) { //NOSONAR
+        this(settings, portObjectConnection, () -> {});
+    }
+
+    /**
+     * Creates a new FileChooserAccessor with a custom {@link CancelChecker}.
+     *
+     * @param settings {@link AbstractSettingsModelFileChooser} provided by the user
+     * @param portObjectConnection connection retrieved from the file system port object (if the node has one)
+     * @param cancelChecker used to check for cancellation during file tree traversal
+     */
+    public FileChooserPathAccessor(final AbstractSettingsModelFileChooser<?> settings,
+        final Optional<FSConnection> portObjectConnection, final CancelChecker cancelChecker) { //NOSONAR
         super(new FileChooserPathAccessorSettings(settings.getLocation(), new FilterSettings(
             settings.getFilterModeModel().getFilterMode(), settings.getFilterModeModel().isIncludeSubfolders(),
             settings.getFilterModeModel().getFilterOptionsSettings(), settings.getFilterModeModel().isFollowLinks())),
-            portObjectConnection);
+            portObjectConnection, cancelChecker);
     }
 
 }
