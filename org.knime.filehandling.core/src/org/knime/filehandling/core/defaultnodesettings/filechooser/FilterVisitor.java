@@ -56,6 +56,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.knime.core.node.CanceledExecutionException;
+import org.knime.core.node.CanceledExecutionException.CancelChecker;
 import org.knime.filehandling.core.defaultnodesettings.ExceptionUtil;
 import org.knime.filehandling.core.defaultnodesettings.filechooser.reader.FileFilterStatistic;
 import org.knime.filehandling.core.defaultnodesettings.filtermode.FileAndFolderFilter;
@@ -80,11 +82,14 @@ final class FilterVisitor extends SimpleFileVisitor<Path> {
 
     private final boolean m_includeSubfolders;
 
+    private final CancelChecker m_cancelChecker;
+
     private final List<Path> m_paths = new ArrayList<>();
 
     private int m_visitedFiles;
 
     private int m_visitedFolders = -1;
+
 
     /**
      * Constructor.
@@ -94,15 +99,21 @@ final class FilterVisitor extends SimpleFileVisitor<Path> {
      * @param includeFolders whether folders should be added to the paths returned by getPaths()
      */
     FilterVisitor(final FileAndFolderFilter filter, final boolean includeFiles, final boolean includeFolders,
-        final boolean includeSubfolders) {
+        final boolean includeSubfolders, final CancelChecker cancelationCheck) {
         m_filter = filter;
         m_includeFiles = includeFiles;
         m_includeFolders = includeFolders;
         m_includeSubfolders = includeSubfolders;
+        m_cancelChecker = cancelationCheck;
     }
 
     @Override
     public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+        try {
+            m_cancelChecker.checkCanceled();
+        } catch (final CanceledExecutionException e) {
+            throw new IOException(e);
+        }
         final FileVisitResult result = super.visitFile(file, attrs);
         // also called for directories (if max depth is hit by Files.walkFileTree) for these directories
         // #preVisitDirectory is not being invoked
@@ -140,6 +151,11 @@ final class FilterVisitor extends SimpleFileVisitor<Path> {
 
     @Override
     public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
+        try {
+            m_cancelChecker.checkCanceled();
+        } catch (final CanceledExecutionException e) {
+            throw new IOException(e);
+        }
         super.preVisitDirectory(dir, attrs);
         m_visitedFolders++;
         // the root directory is ignored

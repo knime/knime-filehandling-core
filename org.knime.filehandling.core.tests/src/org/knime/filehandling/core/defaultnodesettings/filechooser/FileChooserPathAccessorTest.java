@@ -48,6 +48,7 @@
  */
 package org.knime.filehandling.core.defaultnodesettings.filechooser;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.mockito.Mockito.when;
 
@@ -63,6 +64,8 @@ import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.knime.core.node.CanceledExecutionException;
+import org.knime.core.node.DefaultNodeProgressMonitor;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.context.ports.PortsConfiguration;
 import org.knime.core.node.workflow.WorkflowManager;
@@ -224,6 +227,33 @@ public class FileChooserPathAccessorTest {
             m_folderLink, m_folderLinkToContentFile, m_ordinaryFile);
 
         WorkflowTestUtil.shutdownWorkflowManager(workflowManager);
+    }
+
+    /**
+     * Tests that {@link FileChooserPathAccessor#getFSPaths} throws an {@link IOException} (wrapping a
+     * {@code CanceledExecutionException}) when the {@link NodeProgressMonitor} has been cancelled before the call.
+     *
+     * @throws InvalidSettingsException not thrown
+     */
+    @Test
+    public void testGetFSPathsThrowsWhenCanceled() throws IOException, InvalidSettingsException {
+        final WorkflowManager workflowManager = WorkflowTestUtil.createAndLoadDummyWorkflow(m_tempDir);
+        when(m_portsConfig.getInputPortLocation()).thenReturn(Collections.emptyMap());
+        final SettingsModelReaderFileChooser settingsModel = new SettingsModelReaderFileChooser("test", m_portsConfig,
+            "foobar", EnumConfig.supportAll(FilterMode.FILES_IN_FOLDERS), EnumSet.of(FSCategory.LOCAL));
+        settingsModel.setLocation(new FSLocation(FSCategory.LOCAL, m_links.toAbsolutePath().toString()));
+
+        final DefaultNodeProgressMonitor monitor = new DefaultNodeProgressMonitor();
+        monitor.setExecuteCanceled();
+        try (FileChooserPathAccessor accessor = new FileChooserPathAccessor(settingsModel, Optional.empty(),
+                monitor::checkCanceled)) {
+            assertThatThrownBy(() -> accessor.getFSPaths(s -> {}))
+                .isInstanceOf(IOException.class)
+                .cause()
+                .isInstanceOf(CanceledExecutionException.class);
+        } finally {
+            WorkflowTestUtil.shutdownWorkflowManager(workflowManager);
+        }
     }
 
     private static void testGetFSPathsBehavior(final SettingsModelReaderFileChooser settingsModel,

@@ -60,6 +60,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.knime.core.node.CanceledExecutionException.CancelChecker;
 import org.knime.core.node.InvalidSettingsException;
 import org.knime.core.node.util.CheckUtils;
 import org.knime.filehandling.core.connections.FSConnection;
@@ -123,6 +124,8 @@ public abstract class AbstractFileChooserPathAccessor implements ReadPathAccesso
 
     private final FilterMode m_filterMode;
 
+    private final CancelChecker m_cancelationCheck;
+
     private FileFilterStatistic m_fileFilterStatistic;
 
     /**
@@ -132,6 +135,8 @@ public abstract class AbstractFileChooserPathAccessor implements ReadPathAccesso
     private FSConnection m_connection;
 
     private FSFileSystem<?> m_fileSystem;
+
+
 
     /**
      * Creates a new FileChooserAccessor for the provided {@link AbstractSettingsModelFileChooser} and
@@ -144,10 +149,18 @@ public abstract class AbstractFileChooserPathAccessor implements ReadPathAccesso
      */
     protected AbstractFileChooserPathAccessor(final FileChooserPathAccessorSettings settings,
         final Optional<FSConnection> portObjectConnection) { //NOSONAR
+        this(settings, portObjectConnection, () -> {});
+    }
+
+    /**
+     */
+    protected AbstractFileChooserPathAccessor(final FileChooserPathAccessorSettings settings,
+        final Optional<FSConnection> portObjectConnection, final CancelChecker cancelationCheck) {
         m_rootLocation = settings.location();
         m_portObjectConnection = portObjectConnection;
         m_settings = settings;
         m_filterMode = m_settings.filterSettings().filterMode();
+        m_cancelationCheck = cancelationCheck;
     }
 
     private FSConnection getConnection() {
@@ -227,11 +240,10 @@ public abstract class AbstractFileChooserPathAccessor implements ReadPathAccesso
         if (m_filterMode == FilterMode.FILE || m_filterMode == FilterMode.FOLDER
             || m_filterMode == FilterMode.WORKFLOW) {
             return handleSinglePath(rootPath);
-        } else {
-            List<FSPath> fsPaths = walkFileTree(rootPath);
-            FSFiles.sortPathsLexicographically(fsPaths);
-            return fsPaths;
         }
+        final var fsPaths = walkFileTree(rootPath);
+        FSFiles.sortPathsLexicographically(fsPaths);
+        return fsPaths;
     }
 
     private List<FSPath> handleSinglePath(final FSPath rootPath) throws IOException, InvalidSettingsException {
@@ -285,11 +297,11 @@ public abstract class AbstractFileChooserPathAccessor implements ReadPathAccesso
         final FileAndFolderFilter filter = new FileAndFolderFilter(rootPath, settings.filterOptionsSettings());
         switch (m_filterMode) {
             case FILES_AND_FOLDERS:
-                return new FilterVisitor(filter, true, true, includeSubfolders);
+                return new FilterVisitor(filter, true, true, includeSubfolders, m_cancelationCheck);
             case FILES_IN_FOLDERS:
-                return new FilterVisitor(filter, true, false, includeSubfolders);
+                return new FilterVisitor(filter, true, false, includeSubfolders, m_cancelationCheck);
             case FOLDERS:
-                return new FilterVisitor(filter, false, true, includeSubfolders);
+                return new FilterVisitor(filter, false, true, includeSubfolders, m_cancelationCheck);
             case FOLDER:
             case FILE:
                 throw new IllegalStateException(
